@@ -9,3 +9,6 @@ wheels/
 # Virtual environments
 .venv
 .env
+
+# Base de datos local de desarrollo (SQLite)
+dev.db
