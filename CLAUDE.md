@@ -37,13 +37,17 @@ Arquitectura **desacoplada**, dos repos de GitHub en una organización:
 
 Subtareas de backend de Juanca, en orden:
 1. **JDS-6**: Modelo de Usuario + endpoint `POST /api/login` para dignatarios con Token JWT. ✅ **COMPLETADA** — commit `feat: implementar modelo de Usuario y login con JWT (JDS-6)` ya hecho y pusheado a `origin/feature/JDS-6-login`. Verificado en esta sesión (2026-09-01): `POST /api/login` con `juanca@test.com` / `Password1` devuelve `access_token` correctamente.
-1b. **Registro de usuarios** (`POST /api/register`): ✅ **COMPLETADO** (2026-09-01, cambios SIN commitear aún). Ver detalle en sección 6b.
-2. **JDS-7**: Modelo de PQRS + endpoint `GET /api/pqrs/entrantes` (listar solicitudes nuevas). ✅ **COMPLETADA** (2026-09-01, cambios SIN commitear aún). Ver detalle en sección 6c.
-3. Endpoint `PUT /api/pqrs/{id}/asignar` (vincular PQRS a un comité). ← **SIGUIENTE PASO**
-4. Endpoint `PUT /api/pqrs/{id}/estado` (actualizar estado En_Proceso/Finalizada).
-5. Endpoint `GET /api/pqrs/historial` (registro histórico completo).
+1b. **Registro de usuarios** (`POST /api/register`): ✅ **COMPLETADO** (2026-09-01, commit local `2d3bf40`, sin push aún). Ver detalle en sección 6b.
+2. **JDS-7**: Modelo de PQRS + endpoint `GET /api/pqrs/entrantes` (listar solicitudes nuevas). ✅ **COMPLETADA** (2026-09-01, commit local `2d3bf40`, sin push aún). Ver detalle en sección 6c.
+3. Endpoint `PUT /api/pqrs/{id}/asignar` (vincular PQRS a un comité). ✅ **COMPLETADA** (2026-09-14, sin commitear aún). Ver sección 6d.
+4. Endpoint `PUT /api/pqrs/{id}/estado` (actualizar estado En_Proceso/Finalizada). ✅ **COMPLETADA** (2026-09-14, sin commitear). Ver sección 6d.
+5. Endpoint `GET /api/pqrs/historial` (registro histórico completo). ✅ **COMPLETADA** (2026-09-14, sin commitear). Ver sección 6d.
+
+**Extra (fuera de las 5 subtareas, pedido por Juanca para cerrar el flujo):** `POST /api/pqrs` (radicar) y `GET /api/pqrs/seguimiento/{codigo}` (consulta pública por código). Además, **todos los endpoints de gestión quedaron protegidos con JWT**. Ver sección 6d.
 
 JDS-61 ("Estructura Base del Backend") ya se completó con commit/push.
+
+**➡️ El primer sprint (backend de Juanca) quedó COMPLETO a nivel funcional.** Pendientes menores en sección 6d ("qué falta / a futuro").
 
 ---
 
@@ -114,7 +118,7 @@ phone: 3001234567
 Login verificado con `POST /api/login` → devuelve `access_token` válido. Este usuario ahora se crea vía `POST /api/register` (ya no a mano por el REPL).
 
 ### Estado de git
-Rama `feature/JDS-6-login`. Commits en `origin`: `chore: Estructura base del proyecto` → `feat: implementar modelo de Usuario y login con JWT (JDS-6)`. Los cambios del registro (sección 6b) están SIN commitear todavía.
+Rama `feature/JDS-6-login`. Commits: `chore: Estructura base del proyecto` → `feat: ... JWT (JDS-6)` (ambos en `origin`) → `2d3bf40 feat: registro de usuarios y listado de PQRS entrantes (JDS-7)` (**local, sin push aún**).
 
 ---
 
@@ -136,7 +140,7 @@ Probado end-to-end con curl: registro OK (201), login del registrado OK, y los 3
 
 ## 6c. JDS-7 — MODELO PQRS + `GET /api/pqrs/entrantes` — COMPLETADO 2026-09-01
 
-Modelo `PQRS` y endpoint que lista las solicitudes nuevas. Cambios (todos SIN commitear aún):
+Modelo `PQRS` y endpoint que lista las solicitudes nuevas. Cambios (en commit local `2d3bf40`, sin push aún):
 - `app/models/pqrs.py`: modelo `PQRS` (tabla `pqrs`). Campos: `id`, `codigo_seguimiento` (único, generado con `uuid.uuid4().hex[:10]`, para consultar sin login), `tipo` (Peticion/Queja/Reclamo/Sugerencia), `asunto`, `descripcion`, `estado` (default `"Nueva"` → `En_Proceso` → `Finalizada`), `es_anonima` (Boolean default False), `radicado_por_id` (FK a `users.id`, **nullable** — vacío para no registrados), `nombre_contacto`/`email_contacto`/`telefono_contacto` (nullable), `comite` (nullable), `created_at`, `updated_at` (con `onupdate`).
 - **Decisión de diseño con Juanca**: quién radica = FK opcional + datos de contacto. Los registrados quedan con FK; turistas/no registrados solo con datos de contacto. Además `es_anonima`: se guardan los datos pero se OCULTAN en la respuesta a los dignatarios; la persona sigue el estado con su `codigo_seguimiento`. **Falta comunicar estos campos (sobre todo `es_anonima` y `codigo_seguimiento`) a Simón para el DER.**
 - `app/schemas/pqrs.py`: `PQRSResponse` (incluye datos de contacto como opcionales; llegan en `None` cuando la PQRS es anónima).
@@ -150,10 +154,51 @@ Nota lint: `ruff` marca `B008` en los endpoints por `Depends()` en los defaults 
 
 ---
 
-## 7. SIGUIENTE PASO INMEDIATO (endpoint asignar comité)
+## 6d. RESTO DEL SPRINT — FLUJO PQRS COMPLETO + JWT — COMPLETADO 2026-09-14
 
-JDS-6, registro y JDS-7 están hechos (sin commitear). Siguiente subtarea (sección 4, punto 3):
-- `PUT /api/pqrs/{id}/asignar` — vincular una PQRS a un comité (setear el campo `comite`). Probablemente también cambie el estado a `En_Proceso`. Reutilizar `app/services/pqrs/` (agregar la lógica en un archivo por responsabilidad, p. ej. `gestion.py` orquesta y una función de actualización en `consultas.py` o un nuevo módulo).
+Se terminaron las subtareas 3, 4 y 5 y, a pedido de Juanca, se cerró **todo el flujo de PQRS** + se **protegieron las rutas de gestión con JWT**. Cambios (SIN commitear aún):
+
+**Autenticación (JWT en rutas):**
+- `app/services/auth/tokens.py`: nueva `decode_access_token(token)` (verifica/decodifica, devuelve payload o None si inválido/expirado).
+- `app/api/deps.py` (nuevo): `get_current_user` (obliga token válido, 401 si no) y `get_current_user_optional` (no falla si no hay token). Usan `OAuth2PasswordBearer` (aparece el botón "Authorize" en /docs). El token se lee del header `Authorization: Bearer <token>`.
+- Rutas protegidas: `GET /pqrs/entrantes`, `GET /pqrs/historial`, `PUT /pqrs/{id}/asignar`, `PUT /pqrs/{id}/estado`. Por ahora exigen **estar autenticado** (cualquier usuario con token). Falta afinar restricción por ROL (ver "a futuro").
+
+**Catálogo (lista fija) — `app/services/pqrs/catalogos.py`:**
+- `TIPOS_VALIDOS` = Peticion, Queja, Reclamo, Sugerencia.
+- `ESTADOS_VALIDOS` = Nueva, En_Proceso, Finalizada (+ constantes `ESTADO_*`).
+- `COMITES_VALIDOS` = cargos (Presidente, Vicepresidente, Tesorero, Secretario, Fiscal) + comisiones (Convivencia y Conciliación, Obras e Infraestructura, Deportes y Recreación, Salud, Medio Ambiente y Gestión del Riesgo, Educación y Cultura). Basado en la **Ley 2166 de 2021** (estructura de una JAC). **Es una lista INICIAL — refinar con los estatutos reales de Potrerito.**
+- Funciones `es_tipo_valido` / `es_estado_valido` / `es_comite_valido`.
+
+**Servicios PQRS (modular estricto):**
+- `consultas.py`: +`obtener_todas` (historial, orden desc), `obtener_por_id`, `obtener_por_codigo`.
+- `radicacion.py` (nuevo): `crear_pqrs(...)` — valida tipo y guarda.
+- `gestion.py`: +`listar_historial`, `asignar_comite` (valida comité, setea comité y pasa estado a `En_Proceso`, 404 si no existe), `cambiar_estado` (valida estado, 404 si no existe).
+- `seguimiento.py` (nuevo): `consultar_por_codigo` — devuelve SOLO datos no sensibles (nunca identidad), para seguir anónimas por su código.
+
+**Endpoints (router `pqrs.py`):**
+- `POST /api/pqrs` — radicar (público; si viene token, asocia `radicado_por_id`; si es anónima el radicador igual recibe su `codigo_seguimiento`).
+- `GET /api/pqrs/seguimiento/{codigo}` — consulta pública del estado.
+- `GET /api/pqrs/entrantes` — 🔒 lista las "Nueva".
+- `GET /api/pqrs/historial` — 🔒 todas (con anonimato aplicado).
+- `PUT /api/pqrs/{id}/asignar` — 🔒 asignar comité (400 si comité inválido, 404 si no existe).
+- `PUT /api/pqrs/{id}/estado` — 🔒 cambiar estado (400 si estado inválido, 404 si no existe).
+
+**Tests:** `tests/test_catalogos.py` (7) y `tests/test_anonimato.py` (2). Total `pytest` = **17/17 OK**. Además verificación E2E con `TestClient` (21 checks) del flujo entero: radicar → seguimiento → 401 sin token → entrantes (anónima oculta) → asignar (inválido/válido/404) → estado (inválido/Finalizada) → historial → seguimiento refleja el cambio → radicar con token asocia usuario. Todo verde.
+
+**Qué falta / a futuro (NO bloquea el sprint):**
+- **Restringir por ROL** los endpoints de gestión (hoy basta con token válido; idealmente solo dignatarios/admin). Requiere primero el mecanismo de asignación de roles por el superadmin.
+- Comunicar a **Simón** los campos de PQRS (`es_anonima`, `codigo_seguimiento`, contacto) y la lista de comités para el DER.
+- Afinar `COMITES_VALIDOS` con los estatutos reales de la JAC de Potrerito.
+- Endpoint para que el superadmin asigne/cambie roles (mencionado en la decisión de registro, aún no existe).
+
+---
+
+## 7. SIGUIENTE PASO
+
+El primer sprint del backend quedó completo y verificado (falta commit/push). Opciones de continuación:
+- Commit + push de todo lo pendiente (registro, JDS-7, y flujo PQRS + JWT).
+- Empezar los pendientes "a futuro" de la sección 6d (restricción por rol, endpoint de superadmin para roles).
+- Coordinar con Simón (PostgreSQL/DER) y con David (frontend Angular).
 
 Seguir la metodología de la sección 5: explicar, dejar que Juanca lo intente, revisar línea por línea solo si pide el código armado.
 
