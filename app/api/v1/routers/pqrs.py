@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user, get_current_user_optional
+from app.api.deps import get_current_user_optional, requiere_roles
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.pqrs import (
@@ -11,6 +11,7 @@ from app.schemas.pqrs import (
     PQRSResponse,
     PQRSSeguimiento,
 )
+from app.services.auth.roles import ROLES_GESTION
 from app.services.pqrs.anonimato import ocultar_si_anonima
 from app.services.pqrs.gestion import (
     asignar_comite,
@@ -68,7 +69,7 @@ def seguimiento_pqrs(codigo: str, db: Session = Depends(get_db)):
 @router.get("/pqrs/entrantes", response_model=list[PQRSResponse])
 def pqrs_entrantes(
     db: Session = Depends(get_db),
-    usuario: User = Depends(get_current_user),
+    usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
 ):
     return listar_entrantes(db)
 
@@ -76,7 +77,7 @@ def pqrs_entrantes(
 @router.get("/pqrs/historial", response_model=list[PQRSResponse])
 def pqrs_historial(
     db: Session = Depends(get_db),
-    usuario: User = Depends(get_current_user),
+    usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
 ):
     return listar_historial(db)
 
@@ -86,7 +87,7 @@ def asignar(
     pqrs_id: int,
     data: AsignarComite,
     db: Session = Depends(get_db),
-    usuario: User = Depends(get_current_user),
+    usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
 ):
     try:
         pqrs = asignar_comite(db, pqrs_id, data.comite)
@@ -104,7 +105,7 @@ def actualizar_estado(
     pqrs_id: int,
     data: CambiarEstado,
     db: Session = Depends(get_db),
-    usuario: User = Depends(get_current_user),
+    usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
 ):
     try:
         pqrs = cambiar_estado(db, pqrs_id, data.estado)
