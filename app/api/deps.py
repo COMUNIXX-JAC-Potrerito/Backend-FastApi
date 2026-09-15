@@ -49,3 +49,18 @@ def get_current_user_optional(
     if token is None:
         return None
     return _usuario_desde_token(token, db)
+
+
+def requiere_roles(*roles_permitidos: str):
+    """Crea una dependencia que exige estar autenticado Y tener uno de los
+    roles indicados. Si el rol no está permitido, lanza 403."""
+
+    def verificador(usuario: User = Depends(get_current_user)) -> User:
+        if usuario.role not in roles_permitidos:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No tienes permiso para realizar esta acción",
+            )
+        return usuario
+
+    return verificador
