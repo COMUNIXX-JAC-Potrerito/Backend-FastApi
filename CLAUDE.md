@@ -20,11 +20,17 @@ Documento de contexto para que cualquier IA (o persona) retome el trabajo sin pe
   - Público (Sprint 3): portal, radicar PQRS (con anónima + código), consultar estado por código, registro. Consume la API. `apiUrl` en `src/environments/environment.ts` (hoy `http://127.0.0.1:8000/api`).
 - **Jira** — proyecto COMUNIXX / key `JDS`, conector Atlassian. cloudId `ec1278fe-7583-4e7c-9eee-dd61448687da`. Cada Historia tiene subtarea backend (juan montes) + frontend (david orozco). Transición a Finalizada = id `31`. El conector NO gestiona sprints (eso lo hace Juanca en el tablero).
 
-**Pendiente (bloqueado en Simón):**
-- JDS-60 (Simón): crear instancia PostgreSQL en la nube + cadena de conexión → se movió al Sprint 4.
-- JDS-70 (Juanca, depende de JDS-60): migrar a PostgreSQL, conciliar modelos con el DER. Cuando llegue la cadena: `uv add psycopg2-binary`, cambiar `DATABASE_URL`, quitar `connect_args` de SQLite en `db/session.py`, y ampliar CORS al dominio del frontend desplegado.
+**Base de datos: YA en PostgreSQL (Neon).** ✅ JDS-70 hecho (2026-09-16). Simón entregó la cadena; se conectó y verificó:
+- Driver `psycopg2-binary` agregado.
+- `db/session.py`: `connect_args={"check_same_thread": False}` ahora es condicional (solo SQLite).
+- `DATABASE_URL` (Neon) en `.env` (gitignored, NUNCA se commitea). SQLite queda como alternativa local comentada.
+- Verificado contra Neon real (PostgreSQL 18.6): `create_all` crea `users` y `pqrs`, y registro+login funcionan.
 
-**Plan de despliegue (decidido, todo gratis):** BD en **Neon** · Backend en **Render** · Frontend en **Vercel/Netlify**. Instrucciones para Simón en `docs/instrucciones-base-de-datos-simon.md`.
+**Pendiente:**
+- JDS-60 (Simón): entregó la cadena → se puede cerrar.
+- **Despliegue** (siguiente): Backend en **Render**, Frontend en **Vercel/Netlify**. Al desplegar el frontend, ampliar `allow_origins` del CORS en `main.py` a su dominio, y en el frontend cambiar `apiUrl` a la URL pública del backend.
+
+**Plan de despliegue (decidido, todo gratis):** BD en **Neon** (✅ hecho) · Backend en **Render** · Frontend en **Vercel/Netlify**. Instrucciones que se le pasaron a Simón en `docs/instrucciones-base-de-datos-simon.md`.
 
 ---
 
