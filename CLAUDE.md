@@ -4,6 +4,30 @@ Documento de contexto para que cualquier IA (o persona) retome el trabajo sin pe
 
 ---
 
+## 0. ESTADO ACTUAL (2026-09-16) — ESTE BLOQUE MANDA
+
+> Varias secciones más abajo están DESACTUALIZADAS (dicen "Sprint 2 actual", "frontend no empezado", "Simón no ha entregado el DER"). Ignóralas; este bloque es el estado real.
+
+**Sprints 2 y 3 COMPLETADOS por parte del equipo de desarrollo.** Lo hecho:
+
+- **Backend (FastAPI)** — repo `Backend-FastApi`, rama `feature/sprint-2` (pusheada). Completo:
+  - Auth: `POST /api/login` (JWT), `POST /api/register`.
+  - PQRS: `POST /api/pqrs` (radicar, público), `GET /api/pqrs/seguimiento/{codigo}` (público), `GET /api/pqrs/entrantes`, `GET /api/pqrs/historial`, `PUT /api/pqrs/{id}/asignar`, `PUT /api/pqrs/{id}/estado`.
+  - Roles: `PUT /api/usuarios/{id}/rol` (solo superadmin). Endpoints de gestión restringidos por rol (`administrador`/`superadministrador`) vía `requiere_roles` en `app/api/deps.py`. Catálogo de roles en `app/services/auth/roles.py`. Script `crear_superadmin.py` para el primer superadmin.
+  - Tests: ~23 pytest + E2E con TestClient (flujo PQRS y roles). Todo verde.
+- **Frontend (Angular 20)** — repo `Frontend-Angular` (https://github.com/COMUNIXX-JAC-Potrerito/Frontend-Angular), rama `master` (pusheada). Carpeta local `C:\Sena 2026\Desarrollo Comunix\comunixx-frontend` (hermana del backend). Completo y probado en navegador:
+  - Privado (Sprint 2): login JWT + dashboard (entrantes, asignar comité, cambiar estado, historial).
+  - Público (Sprint 3): portal, radicar PQRS (con anónima + código), consultar estado por código, registro. Consume la API. `apiUrl` en `src/environments/environment.ts` (hoy `http://127.0.0.1:8000/api`).
+- **Jira** — proyecto COMUNIXX / key `JDS`, conector Atlassian. cloudId `ec1278fe-7583-4e7c-9eee-dd61448687da`. Cada Historia tiene subtarea backend (juan montes) + frontend (david orozco). Transición a Finalizada = id `31`. El conector NO gestiona sprints (eso lo hace Juanca en el tablero).
+
+**Pendiente (bloqueado en Simón):**
+- JDS-60 (Simón): crear instancia PostgreSQL en la nube + cadena de conexión → se movió al Sprint 4.
+- JDS-70 (Juanca, depende de JDS-60): migrar a PostgreSQL, conciliar modelos con el DER. Cuando llegue la cadena: `uv add psycopg2-binary`, cambiar `DATABASE_URL`, quitar `connect_args` de SQLite en `db/session.py`, y ampliar CORS al dominio del frontend desplegado.
+
+**Plan de despliegue (decidido, todo gratis):** BD en **Neon** · Backend en **Render** · Frontend en **Vercel/Netlify**. Instrucciones para Simón en `docs/instrucciones-base-de-datos-simon.md`.
+
+---
+
 ## 1. QUÉ ES COMUNIX
 
 Sistema de gestión comunitaria para la Junta de Acción Comunal (JAC) de la **Vereda Potrerito**. Es el **proyecto integrador (capstone)** del programa Análisis y Desarrollo de Software (ADSO) del SENA.
