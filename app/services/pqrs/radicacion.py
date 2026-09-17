@@ -21,6 +21,15 @@ def crear_pqrs(
     if not es_tipo_valido(tipo):
         raise ValueError("El tipo de PQRS no es válido (Peticion, Queja, Reclamo o Sugerencia)")
 
+    # Si NO es anónima, se exigen datos de contacto (nombre + correo o teléfono).
+    if not es_anonima:
+        if not (nombre_contacto and nombre_contacto.strip()):
+            raise ValueError("Indica tu nombre, o marca la PQRS como anónima")
+        tiene_correo = email_contacto and email_contacto.strip()
+        tiene_tel = telefono_contacto and telefono_contacto.strip()
+        if not (tiene_correo or tiene_tel):
+            raise ValueError("Indica un correo o un teléfono de contacto, o marca la PQRS como anónima")
+
     nueva_pqrs = PQRS(
         tipo=tipo,
         asunto=asunto,
