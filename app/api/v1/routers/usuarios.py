@@ -4,9 +4,9 @@ from sqlalchemy.orm import Session
 from app.api.deps import requiere_roles
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.user import CambiarRol, UserResponse
+from app.schemas.user import CambiarComite, CambiarRol, UserResponse
 from app.services.auth.roles import ROL_SUPERADMIN, ROLES_GESTION
-from app.services.usuarios.gestion import cambiar_rol
+from app.services.usuarios.gestion import cambiar_comite, cambiar_rol
 
 router = APIRouter()
 
@@ -30,6 +30,25 @@ def actualizar_rol(
 ):
     try:
         actualizado = cambiar_rol(db, user_id, data.rol)
+    except ValueError as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
+    if actualizado is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado"
+        )
+    return actualizado
+
+
+# Solo un superadministrador puede asignar la comisión de un usuario.
+@router.put("/usuarios/{user_id}/comite", response_model=UserResponse)
+def actualizar_comite(
+    user_id: int,
+    data: CambiarComite,
+    db: Session = Depends(get_db),
+    usuario: User = Depends(requiere_roles(ROL_SUPERADMIN)),
+):
+    try:
+        actualizado = cambiar_comite(db, user_id, data.comite)
     except ValueError as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
     if actualizado is None:

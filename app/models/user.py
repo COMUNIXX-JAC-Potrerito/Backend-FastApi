@@ -14,5 +14,6 @@ class User(Base):
     full_name = Column(String, nullable=False)
     phone = Column(String, nullable=True)  # celular del usuario
     role = Column(String, nullable=False, default="usuario")  # usuario, administrador, superadministrador, entidad
+    comite = Column(String, nullable=True)  # comisión/cargo del dignatario (para PQRS asignadas)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)

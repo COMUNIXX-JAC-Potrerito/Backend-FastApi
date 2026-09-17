@@ -37,6 +37,9 @@ def crear(
             contenido=data.contenido,
             fecha_evento=data.fecha_evento,
             publicado_por_id=usuario.id,
+            adjunto_url=data.adjunto_url,
+            adjunto_tipo=data.adjunto_tipo,
+            adjunto_nombre=data.adjunto_nombre,
         )
     except ValueError as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
@@ -58,6 +61,9 @@ def editar(
             titulo=data.titulo,
             contenido=data.contenido,
             fecha_evento=data.fecha_evento,
+            adjunto_url=data.adjunto_url,
+            adjunto_tipo=data.adjunto_tipo,
+            adjunto_nombre=data.adjunto_nombre,
         )
     except ValueError as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))

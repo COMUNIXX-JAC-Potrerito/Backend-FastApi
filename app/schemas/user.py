@@ -19,6 +19,7 @@ class UserResponse(BaseModel):
     full_name: str
     phone: str | None = None
     role: str
+    comite: str | None = None
 
     class Config:
         from_attributes = True
@@ -26,3 +27,8 @@ class UserResponse(BaseModel):
 
 class CambiarRol(BaseModel):
     rol: str
+
+
+class CambiarComite(BaseModel):
+    # Comité/comisión del dignatario. Vacío ("") lo deja sin comisión.
+    comite: str

@@ -18,6 +18,7 @@ class PQRSResponse(BaseModel):
     email_contacto: str | None = None
     telefono_contacto: str | None = None
     created_at: datetime
+    respuesta: str | None = None
     # Adjunto opcional (multimedia/archivo)
     adjunto_url: str | None = None
     adjunto_tipo: str | None = None
@@ -50,6 +51,10 @@ class CambiarEstado(BaseModel):
     estado: str
 
 
+class ResponderPQRS(BaseModel):
+    respuesta: str
+
+
 class PQRSSeguimiento(BaseModel):
     # Respuesta pública: solo el avance, nunca la identidad de quien radicó
     codigo_seguimiento: str
@@ -59,6 +64,7 @@ class PQRSSeguimiento(BaseModel):
     comite: str | None = None
     created_at: datetime
     updated_at: datetime | None = None
+    respuesta: str | None = None  # respuesta de la JAC, visible al ciudadano
     # El radicador puede ver su propio adjunto al hacer seguimiento
     adjunto_url: str | None = None
     adjunto_tipo: str | None = None
