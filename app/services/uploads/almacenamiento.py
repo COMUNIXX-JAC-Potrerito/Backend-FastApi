@@ -5,7 +5,7 @@ El frontend manda el archivo a POST /api/uploads y aquí lo subimos a Cloudinary
 devolviendo la URL pública (CDN) que luego se guarda en la base de datos.
 """
 
-import os
+from urllib.parse import urlparse
 
 import cloudinary
 import cloudinary.uploader
@@ -18,8 +18,9 @@ _configurado = False
 def _asegurar_config() -> None:
     """Configura Cloudinary una sola vez a partir de settings.cloudinary_url.
 
-    El SDK lee la variable de entorno CLOUDINARY_URL; como pydantic-settings
-    carga el .env en el objeto settings (no en os.environ), la inyectamos aquí.
+    Se parsea la cadena `cloudinary://<api_key>:<api_secret>@<cloud_name>` y se
+    pasan los valores explícitamente (no dependemos de que el SDK lea la variable
+    de entorno, que solo la toma al importar el módulo).
     """
     global _configurado
     if _configurado:
@@ -30,8 +31,13 @@ def _asegurar_config() -> None:
             "La subida de archivos no está configurada (falta CLOUDINARY_URL)."
         )
 
-    os.environ.setdefault("CLOUDINARY_URL", settings.cloudinary_url)
-    cloudinary.config(secure=True)
+    u = urlparse(settings.cloudinary_url)
+    cloudinary.config(
+        cloud_name=u.hostname,
+        api_key=u.username,
+        api_secret=u.password,
+        secure=True,
+    )
     _configurado = True
 
 
