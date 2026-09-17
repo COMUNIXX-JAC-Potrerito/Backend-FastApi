@@ -5,7 +5,7 @@ services:
     name: comunix-backend
     runtime: docker
     plan: free
-    branch: feature/sprint-2
+    branch: master
     dockerfilePath: ./Dockerfile
     dockerContext: .
     healthCheckPath: /health

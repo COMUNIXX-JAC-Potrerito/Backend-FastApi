@@ -10,7 +10,7 @@ Documento de contexto para que cualquier IA (o persona) retome el trabajo sin pe
 
 **Sprints 2 y 3 COMPLETADOS por parte del equipo de desarrollo.** Lo hecho:
 
-- **Backend (FastAPI)** — repo `Backend-FastApi`, rama `feature/sprint-2` (pusheada). Completo:
+- **Backend (FastAPI)** — repo `Backend-FastApi`, rama `master` (todo mergeado ahí; Render despliega desde master). Completo:
   - Auth: `POST /api/login` (JWT), `POST /api/register`.
   - PQRS: `POST /api/pqrs` (radicar, público), `GET /api/pqrs/seguimiento/{codigo}` (público), `GET /api/pqrs/entrantes`, `GET /api/pqrs/historial`, `PUT /api/pqrs/{id}/asignar`, `PUT /api/pqrs/{id}/estado`.
   - Roles: `PUT /api/usuarios/{id}/rol` (solo superadmin). Endpoints de gestión restringidos por rol (`administrador`/`superadministrador`) vía `requiere_roles` en `app/api/deps.py`. Catálogo de roles en `app/services/auth/roles.py`. Script `crear_superadmin.py` para el primer superadmin.
