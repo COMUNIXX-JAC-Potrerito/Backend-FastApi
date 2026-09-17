@@ -9,6 +9,7 @@ from app.api.v1.routers.pqrs import router as pqrs_router
 from app.api.v1.routers.publicaciones import router as publicaciones_router
 from app.api.v1.routers.reportes import router as reportes_router
 from app.api.v1.routers.usuarios import router as usuarios_router
+from app.core.config import settings
 from app.db.session import Base, engine
 from app.models import (  # noqa: F401  (importados para que Base registre las tablas antes de create_all)
     comunicacion,
@@ -24,9 +25,12 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="COMUNIX API")
 
+# Orígenes permitidos (dev + los que se configuren en producción vía CORS_ORIGINS).
+origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:4200"],  # origen de Angular en dev
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

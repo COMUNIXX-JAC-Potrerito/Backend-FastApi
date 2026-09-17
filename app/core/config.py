@@ -5,6 +5,10 @@ class Settings(BaseSettings):
     database_url: str
     secret_key: str
 
+    # Orígenes permitidos por CORS, separados por coma.
+    # En producción se agrega el dominio del frontend (Vercel) por variable de entorno.
+    cors_origins: str = "http://localhost:4200"
+
     # Config SMTP para el envío masivo de correos (OPCIONAL).
     # Si no se define smtp_host/smtp_user, el envío masivo funciona en modo
     # "simulado" (registra el envío pero no manda correos reales).
