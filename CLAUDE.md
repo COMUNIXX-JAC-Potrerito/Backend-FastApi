@@ -22,6 +22,14 @@ Documento de contexto para que cualquier IA (o persona) retome el trabajo sin pe
 - ⚠️ **PENDIENTE:** falta setear `CLOUDINARY_URL` (Juanca crea la cuenta gratis en Cloudinary y pega la cadena en Render → Environment, y en el `.env` local para probar). Sin esa variable, `/api/uploads` responde 503 "no configurado"; el resto de la app funciona igual.
 - **Roles/login:** el frontend lee el rol del JWT; login enruta dignatario→panel, comunidad→portal; `authGuard` bloquea el panel a no-dignatarios. Superadmin inicial: `jm3876602@gmail.com`.
 
+### 🛠️ MEJORAS UX + GESTIÓN (2026-09-17)
+
+- **PQRS:** contacto (nombre + correo/tel) obligatorio si no es anónima. Radicar también desde el Panel JAC. El **Historial** permite reasignar comité y cambiar estado de cualquier PQRS (antes se "perdían" al salir de Entrantes).
+- **Usuarios (solo superadmin):** página en el panel para ver usuarios y cambiar su **rol** y su **comisión** (`GET /api/usuarios`, `PUT /api/usuarios/{id}/rol`, `PUT /api/usuarios/{id}/comite`).
+- **Comisión + respuestas (item 8):** `users.comite` define a qué comisión pertenece un dignatario. `GET /api/pqrs/asignadas` lista las PQRS de su comisión; `PUT /api/pqrs/{id}/responder` guarda la respuesta. La respuesta es **visible al ciudadano** en el seguimiento por código. Página frontend: **"Mis asignadas"**.
+- **Publicaciones:** ahora aceptan **multimedia** (adjunto Cloudinary) y las fechas están etiquetadas (actividad vs publicación). Comunicaciones: textos aclarados (bitácora vs envío masivo).
+- **Migraciones aplicadas en Neon** (create_all no altera tablas existentes): `adjunto_*` en mensajes/pqrs/publicaciones, `comite` en users, `respuesta` en pqrs. Scripts en scratchpad (no versionados). Para cambios futuros de columnas, usar `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`.
+
 **Sprints 2 y 3 COMPLETADOS por parte del equipo de desarrollo.** Lo hecho:
 
 - **Backend (FastAPI)** — repo `Backend-FastApi`, rama `master` (todo mergeado ahí; Render despliega desde master). Completo:
