@@ -15,6 +15,13 @@ Documento de contexto para que cualquier IA (o persona) retome el trabajo sin pe
 - **BD:** Neon (PostgreSQL). **Monitor:** UptimeRobot HTTP a `/health` cada 5 min.
 - **CORS:** regex `https://.*\.vercel\.app` (cubre cualquier deploy de Vercel). ⚠️ Un dominio personalizado NO queda cubierto → agregarlo a `CORS_ORIGINS` en Render si se usa uno.
 
+### 📎 MULTIMEDIA / ADJUNTOS (2026-09-17) — Cloudinary
+
+- **Backend:** `POST /api/uploads` sube imagen/video/audio/documento a **Cloudinary** (firma en el backend, límite 10 MB). Columnas `adjunto_url/tipo/nombre` en `mensajes` y `pqrs` (migración ALTER ya aplicada en Neon). El anonimato conserva el adjunto (no revela identidad).
+- **Frontend:** mensajería **tipo WhatsApp** (conversaciones por contacto, burbujas, adjuntar archivos) y **PQRS con adjunto opcional**; enlace "Ver adjunto" en entrantes/historial/consulta.
+- ⚠️ **PENDIENTE:** falta setear `CLOUDINARY_URL` (Juanca crea la cuenta gratis en Cloudinary y pega la cadena en Render → Environment, y en el `.env` local para probar). Sin esa variable, `/api/uploads` responde 503 "no configurado"; el resto de la app funciona igual.
+- **Roles/login:** el frontend lee el rol del JWT; login enruta dignatario→panel, comunidad→portal; `authGuard` bloquea el panel a no-dignatarios. Superadmin inicial: `jm3876602@gmail.com`.
+
 **Sprints 2 y 3 COMPLETADOS por parte del equipo de desarrollo.** Lo hecho:
 
 - **Backend (FastAPI)** — repo `Backend-FastApi`, rama `master` (todo mergeado ahí; Render despliega desde master). Completo:
