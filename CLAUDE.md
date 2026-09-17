@@ -27,14 +27,14 @@ Documento de contexto para que cualquier IA (o persona) retome el trabajo sin pe
 - `DATABASE_URL` (Neon) en `.env` (gitignored, NUNCA se commitea). SQLite queda como alternativa local comentada.
 - Verificado contra Neon real (PostgreSQL 18.6): `create_all` crea `users` y `pqrs`, y registro+login funcionan.
 
-**Despliegue: preparado (falta que Juanca haga las cuentas).** Stack elegido: BD **Neon** (✅) · Backend **Koyeb** (no se duerme, gratis) · Frontend **Vercel**.
-- Backend: hay `Dockerfile` + `.dockerignore` en la raíz. CORS configurable por env `CORS_ORIGINS`. El puerto se lee de `$PORT`. En Koyeb se ponen las envs `DATABASE_URL`, `SECRET_KEY`, `CORS_ORIGINS`.
-- Frontend: `environment.prod.ts` (poner la URL de Koyeb + `/api`), `fileReplacements` en `angular.json` y `vercel.json` (ruteo SPA).
+**Despliegue: preparado (falta que Juanca haga las cuentas).** Stack: BD **Neon** (✅) · Backend **Render** + pinger (UptimeRobot) para que no se duerma · Frontend **Vercel** (frontend YA desplegado). **Koyeb se descartó** (se fusionó con Mistral y quitó el hosting web gratis).
+- Backend: `Dockerfile` + `.dockerignore` + `render.yaml` (Blueprint) en la raíz. CORS por env `CORS_ORIGINS`; puerto por `$PORT` (Render lo inyecta). Envs en Render: `DATABASE_URL`, `SECRET_KEY`, `CORS_ORIGINS`.
+- Frontend: `environment.prod.ts` (poner la URL de Render + `/api`), `fileReplacements` en `angular.json`, `vercel.json` (ruteo SPA).
 - **Guía paso a paso en `docs/despliegue.md`.** Instrucciones de BD para Simón en `docs/instrucciones-base-de-datos-simon.md`.
 
 **Pendiente:**
 - JDS-60 (Simón): entregó la cadena → se puede cerrar.
-- Hacer el despliegue (cuentas Koyeb/Vercel) siguiendo `docs/despliegue.md`.
+- Terminar despliegue: crear el Web Service en Render (Blueprint), poner la URL en `environment.prod.ts`, y el CORS. Ver `docs/despliegue.md`.
 - Épica 5 (JDS-30/31/32: encuestas/censos + notificaciones) — en el backlog, no en el sprint actual.
 
 ---
