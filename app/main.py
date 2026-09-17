@@ -8,6 +8,7 @@ from app.api.v1.routers.mensajes import router as mensajes_router
 from app.api.v1.routers.pqrs import router as pqrs_router
 from app.api.v1.routers.publicaciones import router as publicaciones_router
 from app.api.v1.routers.reportes import router as reportes_router
+from app.api.v1.routers.uploads import router as uploads_router
 from app.api.v1.routers.usuarios import router as usuarios_router
 from app.core.config import settings
 from app.db.session import Base, engine
@@ -45,6 +46,7 @@ app.include_router(mensajes_router, prefix="/api")
 app.include_router(comunicaciones_router, prefix="/api")
 app.include_router(envios_router, prefix="/api")
 app.include_router(reportes_router, prefix="/api")
+app.include_router(uploads_router, prefix="/api")
 
 
 # GET y HEAD: los monitores de uptime (UptimeRobot, etc.) suelen usar HEAD.

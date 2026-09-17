@@ -17,6 +17,11 @@ def ocultar_si_anonima(pqrs) -> dict:
         "email_contacto": pqrs.email_contacto,
         "telefono_contacto": pqrs.telefono_contacto,
         "created_at": pqrs.created_at,
+        # El adjunto es parte del contenido de la PQRS, NO revela identidad:
+        # se conserva aunque sea anónima.
+        "adjunto_url": pqrs.adjunto_url,
+        "adjunto_tipo": pqrs.adjunto_tipo,
+        "adjunto_nombre": pqrs.adjunto_nombre,
     }
 
     if pqrs.es_anonima:

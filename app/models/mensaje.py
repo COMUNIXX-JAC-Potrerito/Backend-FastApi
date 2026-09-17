@@ -15,3 +15,8 @@ class Mensaje(Base):
     contenido = Column(String, nullable=False)
     leido = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Adjunto opcional (multimedia/archivo) subido a Cloudinary.
+    adjunto_url = Column(String, nullable=True)
+    adjunto_tipo = Column(String, nullable=True)   # image | video | raw
+    adjunto_nombre = Column(String, nullable=True)

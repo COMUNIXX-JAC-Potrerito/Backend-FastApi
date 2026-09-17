@@ -45,6 +45,9 @@ def radicar_pqrs(
             email_contacto=data.email_contacto,
             telefono_contacto=data.telefono_contacto,
             radicado_por_id=radicado_por_id,
+            adjunto_url=data.adjunto_url,
+            adjunto_tipo=data.adjunto_tipo,
+            adjunto_nombre=data.adjunto_nombre,
         )
     except ValueError as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))

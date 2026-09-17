@@ -21,6 +21,9 @@ class _PQRSFake:
         self.email_contacto = "pepe@test.com"
         self.telefono_contacto = "3001112222"
         self.created_at = datetime.utcnow()
+        self.adjunto_url = None
+        self.adjunto_tipo = None
+        self.adjunto_nombre = None
 
 
 def test_anonima_oculta_identidad():

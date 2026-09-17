@@ -17,3 +17,7 @@ services:
         sync: false
       - key: CORS_ORIGINS
         sync: false
+      # Cloudinary para adjuntos (multimedia/archivos). Formato:
+      # cloudinary://<api_key>:<api_secret>@<cloud_name>
+      - key: CLOUDINARY_URL
+        sync: false

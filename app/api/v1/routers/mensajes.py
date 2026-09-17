@@ -23,7 +23,16 @@ def enviar(
     usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
 ):
     try:
-        return enviar_mensaje(db, usuario.id, data.destinatario_id, data.asunto, data.contenido)
+        return enviar_mensaje(
+            db,
+            usuario.id,
+            data.destinatario_id,
+            data.asunto,
+            data.contenido,
+            adjunto_url=data.adjunto_url,
+            adjunto_tipo=data.adjunto_tipo,
+            adjunto_nombre=data.adjunto_nombre,
+        )
     except ValueError as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
 

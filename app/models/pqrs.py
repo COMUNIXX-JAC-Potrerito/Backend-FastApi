@@ -32,5 +32,10 @@ class PQRS(Base):
 
     comite = Column(String, nullable=True)  # se asigna después (PUT /pqrs/{id}/asignar)
 
+    # Adjunto opcional (multimedia/archivo) subido a Cloudinary al radicar.
+    adjunto_url = Column(String, nullable=True)
+    adjunto_tipo = Column(String, nullable=True)   # image | video | raw
+    adjunto_nombre = Column(String, nullable=True)
+
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
