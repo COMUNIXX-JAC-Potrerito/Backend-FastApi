@@ -12,6 +12,23 @@ Orden: **Backend (Render) → poner su URL en el frontend → Frontend (Vercel) 
 
 ---
 
+## ✅ URLs EN PRODUCCIÓN (LIVE — todo desplegado)
+
+| Pieza | URL |
+|---|---|
+| **Frontend (app)** | <https://frontend-angular-comunixx.vercel.app> ← URL oficial (estable, sin hash) |
+| **Backend (API)** | <https://comunix-backend.onrender.com> |
+| **Docs de la API** | <https://comunix-backend.onrender.com/docs> |
+| **Health check** | <https://comunix-backend.onrender.com/health> |
+| **Base de datos** | Neon (PostgreSQL) |
+| **Monitor uptime** | UptimeRobot → HTTP a `/health` cada 5 min |
+
+**Notas de CORS:** el backend acepta cualquier `*.vercel.app` por regex (`cors_origin_regex`), así que las URLs de deploy de Vercel nunca rompen el login. ⚠️ Si algún día se pone un **dominio personalizado** (ej. `comunixpotrerito.com`), hay que **agregarlo al `CORS_ORIGINS`** del backend en Render, porque el regex solo cubre `.vercel.app`.
+
+**Nota del `/health`:** responde a `GET` **y** `HEAD` (UptimeRobot y varios monitores usan `HEAD`; si solo aceptara `GET` darían 405 y marcarían el server como caído).
+
+---
+
 ## Parte A — Backend en Render
 
 El repo `Backend-FastApi` ya tiene un **Dockerfile** y un **`render.yaml`** (Blueprint) en la raíz.

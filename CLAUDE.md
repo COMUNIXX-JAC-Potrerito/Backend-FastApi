@@ -8,6 +8,13 @@ Documento de contexto para que cualquier IA (o persona) retome el trabajo sin pe
 
 > Varias secciones más abajo están DESACTUALIZADAS (dicen "Sprint 2 actual", "frontend no empezado", "Simón no ha entregado el DER"). Ignóralas; este bloque es el estado real.
 
+### 🌐 URLs EN PRODUCCIÓN (LIVE — 2026-09-17)
+
+- **Frontend (app):** <https://frontend-angular-comunixx.vercel.app> ← URL oficial estable (sin hash). Las URLs de deploy con hash (`...-li2v0csov-...`) cambian por deploy; NO usarlas para compartir.
+- **Backend (API):** <https://comunix-backend.onrender.com> · docs `/docs` · health `/health` (responde GET y HEAD).
+- **BD:** Neon (PostgreSQL). **Monitor:** UptimeRobot HTTP a `/health` cada 5 min.
+- **CORS:** regex `https://.*\.vercel\.app` (cubre cualquier deploy de Vercel). ⚠️ Un dominio personalizado NO queda cubierto → agregarlo a `CORS_ORIGINS` en Render si se usa uno.
+
 **Sprints 2 y 3 COMPLETADOS por parte del equipo de desarrollo.** Lo hecho:
 
 - **Backend (FastAPI)** — repo `Backend-FastApi`, rama `master` (todo mergeado ahí; Render despliega desde master). Completo:
@@ -18,7 +25,7 @@ Documento de contexto para que cualquier IA (o persona) retome el trabajo sin pe
   - **Épica 3 (Divulgación) + Épica 4 (Comunicación) COMPLETAS (2026-09-16).** Publicaciones (`/api/publicaciones`), mensajería interna (`/api/mensajes`), comunicaciones externas (`/api/comunicaciones`), reportes (`/api/reportes/resumen`), envío masivo (`/api/envios-masivos`, SMTP opcional / modo simulado), y `GET /api/usuarios`. Todo restringido por rol y probado E2E contra Neon.
 - **Frontend (Angular 20)** — repo `Frontend-Angular` (https://github.com/COMUNIXX-JAC-Potrerito/Frontend-Angular), rama `master` (pusheada). Carpeta local `C:\Sena 2026\Desarrollo Comunix\comunixx-frontend` (hermana del backend). Completo y probado en navegador:
   - Privado: login JWT + dashboard (entrantes, asignar, estado, historial, **publicaciones, mensajes, comunicaciones, reportes**).
-  - Público: portal, radicar PQRS (con anónima + código), consultar por código, registro, **publicaciones**. Consume la API. `apiUrl` de dev en `src/environments/environment.ts`; de prod en `environment.prod.ts` (poner la URL de Koyeb).
+  - Público: portal, radicar PQRS (con anónima + código), consultar por código, registro, **publicaciones**. Consume la API. `apiUrl` de dev en `src/environments/environment.ts`; de prod en `environment.prod.ts` (ya apunta a `https://comunix-backend.onrender.com/api`).
 - **Jira** — proyecto COMUNIXX / key `JDS`, conector Atlassian. cloudId `ec1278fe-7583-4e7c-9eee-dd61448687da`. Transición a Finalizada = id `31`. El conector NO gestiona sprints (eso lo hace Juanca en el tablero). **Épicas 1-4 finalizadas.** Solo queda JDS-60 (Simón) y la Épica 5 (backlog).
 
 **Base de datos: YA en PostgreSQL (Neon).** ✅ JDS-70 hecho (2026-09-16). Simón entregó la cadena; se conectó y verificó:
