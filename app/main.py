@@ -3,10 +3,12 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.routers.auth import router as auth_router
 from app.api.v1.routers.pqrs import router as pqrs_router
+from app.api.v1.routers.publicaciones import router as publicaciones_router
 from app.api.v1.routers.usuarios import router as usuarios_router
 from app.db.session import Base, engine
 from app.models import (  # noqa: F401  (importados para que Base registre las tablas antes de create_all)
     pqrs,
+    publicacion,
     user,
 )
 
@@ -26,6 +28,7 @@ app.add_middleware(
 app.include_router(auth_router, prefix="/api")
 app.include_router(pqrs_router, prefix="/api")
 app.include_router(usuarios_router, prefix="/api")
+app.include_router(publicaciones_router, prefix="/api")
 
 
 @app.get("/health")
