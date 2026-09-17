@@ -15,10 +15,11 @@ Documento de contexto para que cualquier IA (o persona) retome el trabajo sin pe
   - PQRS: `POST /api/pqrs` (radicar, público), `GET /api/pqrs/seguimiento/{codigo}` (público), `GET /api/pqrs/entrantes`, `GET /api/pqrs/historial`, `PUT /api/pqrs/{id}/asignar`, `PUT /api/pqrs/{id}/estado`.
   - Roles: `PUT /api/usuarios/{id}/rol` (solo superadmin). Endpoints de gestión restringidos por rol (`administrador`/`superadministrador`) vía `requiere_roles` en `app/api/deps.py`. Catálogo de roles en `app/services/auth/roles.py`. Script `crear_superadmin.py` para el primer superadmin.
   - Tests: ~23 pytest + E2E con TestClient (flujo PQRS y roles). Todo verde.
+  - **Épica 3 (Divulgación) + Épica 4 (Comunicación) COMPLETAS (2026-09-16).** Publicaciones (`/api/publicaciones`), mensajería interna (`/api/mensajes`), comunicaciones externas (`/api/comunicaciones`), reportes (`/api/reportes/resumen`), envío masivo (`/api/envios-masivos`, SMTP opcional / modo simulado), y `GET /api/usuarios`. Todo restringido por rol y probado E2E contra Neon.
 - **Frontend (Angular 20)** — repo `Frontend-Angular` (https://github.com/COMUNIXX-JAC-Potrerito/Frontend-Angular), rama `master` (pusheada). Carpeta local `C:\Sena 2026\Desarrollo Comunix\comunixx-frontend` (hermana del backend). Completo y probado en navegador:
-  - Privado (Sprint 2): login JWT + dashboard (entrantes, asignar comité, cambiar estado, historial).
-  - Público (Sprint 3): portal, radicar PQRS (con anónima + código), consultar estado por código, registro. Consume la API. `apiUrl` en `src/environments/environment.ts` (hoy `http://127.0.0.1:8000/api`).
-- **Jira** — proyecto COMUNIXX / key `JDS`, conector Atlassian. cloudId `ec1278fe-7583-4e7c-9eee-dd61448687da`. Cada Historia tiene subtarea backend (juan montes) + frontend (david orozco). Transición a Finalizada = id `31`. El conector NO gestiona sprints (eso lo hace Juanca en el tablero).
+  - Privado: login JWT + dashboard (entrantes, asignar, estado, historial, **publicaciones, mensajes, comunicaciones, reportes**).
+  - Público: portal, radicar PQRS (con anónima + código), consultar por código, registro, **publicaciones**. Consume la API. `apiUrl` de dev en `src/environments/environment.ts`; de prod en `environment.prod.ts` (poner la URL de Koyeb).
+- **Jira** — proyecto COMUNIXX / key `JDS`, conector Atlassian. cloudId `ec1278fe-7583-4e7c-9eee-dd61448687da`. Transición a Finalizada = id `31`. El conector NO gestiona sprints (eso lo hace Juanca en el tablero). **Épicas 1-4 finalizadas.** Solo queda JDS-60 (Simón) y la Épica 5 (backlog).
 
 **Base de datos: YA en PostgreSQL (Neon).** ✅ JDS-70 hecho (2026-09-16). Simón entregó la cadena; se conectó y verificó:
 - Driver `psycopg2-binary` agregado.
@@ -26,11 +27,15 @@ Documento de contexto para que cualquier IA (o persona) retome el trabajo sin pe
 - `DATABASE_URL` (Neon) en `.env` (gitignored, NUNCA se commitea). SQLite queda como alternativa local comentada.
 - Verificado contra Neon real (PostgreSQL 18.6): `create_all` crea `users` y `pqrs`, y registro+login funcionan.
 
+**Despliegue: preparado (falta que Juanca haga las cuentas).** Stack elegido: BD **Neon** (✅) · Backend **Koyeb** (no se duerme, gratis) · Frontend **Vercel**.
+- Backend: hay `Dockerfile` + `.dockerignore` en la raíz. CORS configurable por env `CORS_ORIGINS`. El puerto se lee de `$PORT`. En Koyeb se ponen las envs `DATABASE_URL`, `SECRET_KEY`, `CORS_ORIGINS`.
+- Frontend: `environment.prod.ts` (poner la URL de Koyeb + `/api`), `fileReplacements` en `angular.json` y `vercel.json` (ruteo SPA).
+- **Guía paso a paso en `docs/despliegue.md`.** Instrucciones de BD para Simón en `docs/instrucciones-base-de-datos-simon.md`.
+
 **Pendiente:**
 - JDS-60 (Simón): entregó la cadena → se puede cerrar.
-- **Despliegue** (siguiente): Backend en **Render**, Frontend en **Vercel/Netlify**. Al desplegar el frontend, ampliar `allow_origins` del CORS en `main.py` a su dominio, y en el frontend cambiar `apiUrl` a la URL pública del backend.
-
-**Plan de despliegue (decidido, todo gratis):** BD en **Neon** (✅ hecho) · Backend en **Render** · Frontend en **Vercel/Netlify**. Instrucciones que se le pasaron a Simón en `docs/instrucciones-base-de-datos-simon.md`.
+- Hacer el despliegue (cuentas Koyeb/Vercel) siguiendo `docs/despliegue.md`.
+- Épica 5 (JDS-30/31/32: encuestas/censos + notificaciones) — en el backlog, no en el sprint actual.
 
 ---
 
