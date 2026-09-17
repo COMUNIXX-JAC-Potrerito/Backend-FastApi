@@ -18,6 +18,9 @@ def crear_publicacion(
     contenido: str,
     fecha_evento: datetime | None,
     publicado_por_id: int | None,
+    adjunto_url: str | None = None,
+    adjunto_tipo: str | None = None,
+    adjunto_nombre: str | None = None,
 ) -> Publicacion:
     if not es_categoria_valida(categoria):
         raise ValueError("La categoría no es válida (decision, actividad o contenido)")
@@ -28,6 +31,9 @@ def crear_publicacion(
         contenido=contenido,
         fecha_evento=fecha_evento,
         publicado_por_id=publicado_por_id,
+        adjunto_url=adjunto_url,
+        adjunto_tipo=adjunto_tipo,
+        adjunto_nombre=adjunto_nombre,
     )
     db.add(publicacion)
     db.commit()
@@ -42,6 +48,9 @@ def actualizar_publicacion(
     titulo: str,
     contenido: str,
     fecha_evento: datetime | None,
+    adjunto_url: str | None = None,
+    adjunto_tipo: str | None = None,
+    adjunto_nombre: str | None = None,
 ):
     if not es_categoria_valida(categoria):
         raise ValueError("La categoría no es válida (decision, actividad o contenido)")
@@ -54,6 +63,9 @@ def actualizar_publicacion(
     publicacion.titulo = titulo
     publicacion.contenido = contenido
     publicacion.fecha_evento = fecha_evento
+    publicacion.adjunto_url = adjunto_url
+    publicacion.adjunto_tipo = adjunto_tipo
+    publicacion.adjunto_nombre = adjunto_nombre
     db.commit()
     db.refresh(publicacion)
     return publicacion

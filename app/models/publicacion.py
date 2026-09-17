@@ -14,5 +14,11 @@ class Publicacion(Base):
     contenido = Column(String, nullable=False)
     fecha_evento = Column(DateTime, nullable=True)  # solo para actividades
     publicado_por_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    # Adjunto opcional (imagen/video/documento) subido a Cloudinary.
+    adjunto_url = Column(String, nullable=True)
+    adjunto_tipo = Column(String, nullable=True)   # image | video | raw
+    adjunto_nombre = Column(String, nullable=True)
+
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

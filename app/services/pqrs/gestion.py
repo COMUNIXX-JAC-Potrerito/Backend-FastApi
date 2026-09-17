@@ -6,7 +6,12 @@ from app.services.pqrs.catalogos import (
     es_comite_valido,
     es_estado_valido,
 )
-from app.services.pqrs.consultas import obtener_entrantes, obtener_por_id, obtener_todas
+from app.services.pqrs.consultas import (
+    obtener_asignadas,
+    obtener_entrantes,
+    obtener_por_id,
+    obtener_todas,
+)
 
 
 def listar_entrantes(db: Session):
@@ -17,6 +22,21 @@ def listar_entrantes(db: Session):
 def listar_historial(db: Session):
     todas = obtener_todas(db)
     return [ocultar_si_anonima(pqrs) for pqrs in todas]
+
+
+def listar_asignadas(db: Session, comite: str):
+    asignadas = obtener_asignadas(db, comite)
+    return [ocultar_si_anonima(pqrs) for pqrs in asignadas]
+
+
+def responder_pqrs(db: Session, pqrs_id: int, respuesta: str):
+    pqrs = obtener_por_id(db, pqrs_id)
+    if pqrs is None:
+        return None
+    pqrs.respuesta = respuesta
+    db.commit()
+    db.refresh(pqrs)
+    return pqrs
 
 
 def asignar_comite(db: Session, pqrs_id: int, comite: str):

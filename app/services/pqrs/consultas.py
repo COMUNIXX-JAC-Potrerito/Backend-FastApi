@@ -19,3 +19,13 @@ def obtener_por_id(db: Session, pqrs_id: int):
 
 def obtener_por_codigo(db: Session, codigo: str):
     return db.query(PQRS).filter(PQRS.codigo_seguimiento == codigo).first()
+
+
+def obtener_asignadas(db: Session, comite: str):
+    # PQRS asignadas a un comité/comisión concreto, de la más reciente a la más antigua
+    return (
+        db.query(PQRS)
+        .filter(PQRS.comite == comite)
+        .order_by(PQRS.created_at.desc())
+        .all()
+    )

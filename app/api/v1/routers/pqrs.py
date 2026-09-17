@@ -10,14 +10,17 @@ from app.schemas.pqrs import (
     PQRSCreate,
     PQRSResponse,
     PQRSSeguimiento,
+    ResponderPQRS,
 )
 from app.services.auth.roles import ROLES_GESTION
 from app.services.pqrs.anonimato import ocultar_si_anonima
 from app.services.pqrs.gestion import (
     asignar_comite,
     cambiar_estado,
+    listar_asignadas,
     listar_entrantes,
     listar_historial,
+    responder_pqrs,
 )
 from app.services.pqrs.radicacion import crear_pqrs
 from app.services.pqrs.seguimiento import consultar_por_codigo
@@ -83,6 +86,32 @@ def pqrs_historial(
     usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
 ):
     return listar_historial(db)
+
+
+@router.get("/pqrs/asignadas", response_model=list[PQRSResponse])
+def pqrs_asignadas(
+    db: Session = Depends(get_db),
+    usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
+):
+    # PQRS asignadas a la comisión del dignatario. Si no tiene comisión, lista vacía.
+    if not usuario.comite:
+        return []
+    return listar_asignadas(db, usuario.comite)
+
+
+@router.put("/pqrs/{pqrs_id}/responder", response_model=PQRSResponse)
+def responder(
+    pqrs_id: int,
+    data: ResponderPQRS,
+    db: Session = Depends(get_db),
+    usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
+):
+    pqrs = responder_pqrs(db, pqrs_id, data.respuesta)
+    if pqrs is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="No existe la PQRS indicada"
+        )
+    return ocultar_si_anonima(pqrs)
 
 
 @router.put("/pqrs/{pqrs_id}/asignar", response_model=PQRSResponse)
