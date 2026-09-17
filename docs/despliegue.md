@@ -3,54 +3,62 @@
 Arquitectura en producción (todo gratis):
 
 - **Base de datos:** PostgreSQL en **Neon** (✅ ya creada).
-- **Backend (FastAPI):** **Koyeb** (no se duerme, gratis).
+- **Backend (FastAPI):** **Render** + un "pinger" para que no se duerma.
 - **Frontend (Angular):** **Vercel** (estático, gratis).
 
-Orden: **Backend (Koyeb) → poner su URL en el frontend → Frontend (Vercel) → agregar el dominio de Vercel al CORS del backend.**
+> Nota: se descartó **Koyeb** porque se fusionó con Mistral y quitó el hosting web gratuito.
+
+Orden: **Backend (Render) → poner su URL en el frontend → Frontend (Vercel) → agregar el dominio de Vercel al CORS del backend.**
 
 ---
 
-## Parte A — Backend en Koyeb
+## Parte A — Backend en Render
 
-1. El repo ya está en GitHub (`Backend-FastApi`) con un **Dockerfile** en la raíz. Koyeb lo usará para construir.
-2. Crea una cuenta en <https://koyeb.com> (puedes entrar con GitHub).
-3. **Create Service → GitHub** → elige el repo `Backend-FastApi` y la rama (`feature/sprint-2`).
-4. Koyeb detecta el **Dockerfile** automáticamente (builder: Docker).
-5. **Instance:** Free. **Port:** `8000` (el Dockerfile ya escucha en `$PORT`/8000).
-6. **Environment variables** (en Koyeb, sección Variables):
-   - `DATABASE_URL` = la cadena de conexión de Neon (la que te pasó Simón).
-   - `SECRET_KEY` = la misma clave secreta del `.env` local.
-   - `CORS_ORIGINS` = `http://localhost:4200` (más adelante le agregas el dominio de Vercel).
-7. **Deploy.** Al terminar te da una URL pública tipo `https://comunix-backend-xxxx.koyeb.app`.
-8. Verifica:
-   - `https://<tu-backend>.koyeb.app/health` → `{"status":"ok"}`
-   - `https://<tu-backend>.koyeb.app/docs` → la documentación de la API.
+El repo `Backend-FastApi` ya tiene un **Dockerfile** y un **`render.yaml`** (Blueprint) en la raíz.
+
+1. Entra a <https://render.com> y regístrate con **GitHub**.
+2. **New +** → **Blueprint** → conecta el repo **`Backend-FastApi`**. Render lee `render.yaml` y crea el servicio `comunix-backend` (Docker, plan Free).
+   - _Alternativa manual:_ **New +** → **Web Service** → repo `Backend-FastApi` → rama `feature/sprint-2` → Render detecta el Dockerfile → plan **Free**.
+3. Te pedirá las **variables de entorno** (son secretas):
+   - `DATABASE_URL` = la cadena de conexión de Neon.
+   - `SECRET_KEY` = la misma clave del `.env` local.
+   - `CORS_ORIGINS` = tu URL de Vercel (ej. `https://frontend-angular-comunixx.vercel.app`). Si aún no la tienes, pon `http://localhost:4200` y la actualizas después.
+4. **Deploy.** Tarda unos minutos (construye el Docker). Te da una URL tipo `https://comunix-backend.onrender.com`.
+5. Verifica:
+   - `https://<tu-backend>.onrender.com/health` → `{"status":"ok"}`
+   - `https://<tu-backend>.onrender.com/docs` → la documentación de la API.
 
 > Las tablas se crean solas al arrancar (create_all), contra la base de Neon.
+
+### Que no se duerma (pinger)
+
+El plan Free de Render duerme el servicio tras 15 min sin tráfico. Para evitarlo:
+
+1. Entra a <https://uptimerobot.com> y crea una cuenta gratis.
+2. **Add New Monitor** → tipo **HTTP(s)** → URL `https://<tu-backend>.onrender.com/health` → intervalo **5 minutos**.
+3. Listo: lo golpea cada 5 min y nunca se duerme.
 
 ---
 
 ## Parte B — Frontend en Vercel
 
-1. Edita `src/environments/environment.prod.ts` y pon la URL del backend de Koyeb:
+1. Edita `src/environments/environment.prod.ts` y pon la URL del backend de Render:
    ```ts
    export const environment = {
-     apiUrl: 'https://<tu-backend>.koyeb.app/api',
+     apiUrl: 'https://<tu-backend>.onrender.com/api',
    };
    ```
-   Haz `git commit` y `git push` (rama `master`).
-2. Crea una cuenta en <https://vercel.com> (entra con GitHub).
-3. **Add New → Project** → importa el repo `Frontend-Angular`.
-4. Framework: **Angular** (Vercel lo detecta). Deja el build por defecto (`ng build`). El `vercel.json` ya maneja el ruteo del SPA.
-5. **Deploy.** Te da una URL tipo `https://comunix.vercel.app`.
+   Haz `git commit` y `git push` (rama `master`). Vercel redespliega solo.
+2. (Si aún no lo hiciste) en <https://vercel.com> importa el repo `Frontend-Angular`, framework **Angular**, y **Deploy**. El `vercel.json` ya maneja el ruteo del SPA.
+3. Te da una URL tipo `https://comunix.vercel.app`.
 
 ---
 
 ## Parte C — Conectar CORS
 
-1. Vuelve a Koyeb → variables de entorno → edita:
+1. Vuelve a Render → tu servicio → **Environment** → edita:
    - `CORS_ORIGINS` = `https://<tu-frontend>.vercel.app,http://localhost:4200`
-2. **Redeploy** del backend en Koyeb.
+2. Guarda → Render redespliega el backend solo.
 3. Abre `https://<tu-frontend>.vercel.app` y prueba login/PQRS: ya funciona en la nube.
 
 ---
@@ -70,5 +78,5 @@ El endpoint de cambio de rol solo lo puede usar un superadministrador, y al inic
 
 ## Seguridad
 
-- Cuando todo esté estable, pídele a Simón **rotar la contraseña** de la base en Neon (se compartió por chat) y actualiza `DATABASE_URL` en el `.env` local y en las variables de Koyeb.
-- El `.env` nunca se sube a git; en producción los secretos van en las **variables de entorno** de Koyeb.
+- Cuando todo esté estable, pídele a Simón **rotar la contraseña** de la base en Neon (se compartió por chat) y actualiza `DATABASE_URL` en el `.env` local y en las variables de Render.
+- El `.env` nunca se sube a git; en producción los secretos van en las **variables de entorno** de Render.
