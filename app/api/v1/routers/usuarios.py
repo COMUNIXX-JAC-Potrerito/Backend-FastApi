@@ -5,10 +5,19 @@ from app.api.deps import requiere_roles
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.user import CambiarRol, UserResponse
-from app.services.auth.roles import ROL_SUPERADMIN
+from app.services.auth.roles import ROL_SUPERADMIN, ROLES_GESTION
 from app.services.usuarios.gestion import cambiar_rol
 
 router = APIRouter()
+
+
+# Lista de usuarios (para elegir destinatario de mensajes, gestionar roles, etc.)
+@router.get("/usuarios", response_model=list[UserResponse])
+def listar_usuarios(
+    db: Session = Depends(get_db),
+    usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
+):
+    return db.query(User).order_by(User.full_name).all()
 
 
 # Solo un superadministrador puede cambiar el rol de un usuario.
