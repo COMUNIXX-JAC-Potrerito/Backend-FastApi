@@ -22,6 +22,11 @@ class Settings(BaseSettings):
     smtp_password: str | None = None
     smtp_from: str | None = None
 
+    # Cloudinary (almacenamiento de multimedia/archivos). Formato:
+    # cloudinary://<api_key>:<api_secret>@<cloud_name>
+    # Si no se define, la subida de adjuntos queda deshabilitada (devuelve error claro).
+    cloudinary_url: str | None = None
+
     class Config:
         env_file = ".env"
 
