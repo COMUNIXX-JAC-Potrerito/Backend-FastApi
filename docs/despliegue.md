@@ -18,7 +18,7 @@ El repo `Backend-FastApi` ya tiene un **Dockerfile** y un **`render.yaml`** (Blu
 
 1. Entra a <https://render.com> y regístrate con **GitHub**.
 2. **New +** → **Blueprint** → conecta el repo **`Backend-FastApi`**. Render lee `render.yaml` y crea el servicio `comunix-backend` (Docker, plan Free).
-   - _Alternativa manual:_ **New +** → **Web Service** → repo `Backend-FastApi` → rama `feature/sprint-2` → Render detecta el Dockerfile → plan **Free**.
+   - _Alternativa manual:_ **New +** → **Web Service** → repo `Backend-FastApi` → rama `master` → Render detecta el Dockerfile → plan **Free**.
 3. Te pedirá las **variables de entorno** (son secretas):
    - `DATABASE_URL` = la cadena de conexión de Neon.
    - `SECRET_KEY` = la misma clave del `.env` local.
