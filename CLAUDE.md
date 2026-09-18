@@ -28,7 +28,13 @@ Documento de contexto para que cualquier IA (o persona) retome el trabajo sin pe
 - **Usuarios (solo superadmin):** página en el panel para ver usuarios y cambiar su **rol** y su **comisión** (`GET /api/usuarios`, `PUT /api/usuarios/{id}/rol`, `PUT /api/usuarios/{id}/comite`).
 - **Comisión + respuestas (item 8):** `users.comite` define a qué comisión pertenece un dignatario. `GET /api/pqrs/asignadas` lista las PQRS de su comisión; `PUT /api/pqrs/{id}/responder` guarda la respuesta. La respuesta es **visible al ciudadano** en el seguimiento por código. Página frontend: **"Mis asignadas"**.
 - **Publicaciones:** ahora aceptan **multimedia** (adjunto Cloudinary) y las fechas están etiquetadas (actividad vs publicación). Comunicaciones: textos aclarados (bitácora vs envío masivo).
-- **Migraciones aplicadas en Neon** (create_all no altera tablas existentes): `adjunto_*` en mensajes/pqrs/publicaciones, `comite` en users, `respuesta` en pqrs. Scripts en scratchpad (no versionados). Para cambios futuros de columnas, usar `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`.
+- **Migraciones aplicadas en Neon** (create_all no altera tablas existentes): `adjunto_*` en mensajes/pqrs/publicaciones, `comite` en users, `respuesta`/`respuesta_fecha` en pqrs. Scripts en scratchpad (no versionados). Para cambios futuros de columnas, usar `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`.
+
+### 🗳️ ÉPICA 5 — ENCUESTAS/CENSOS + NOTIFICACIONES (en curso 2026-09-18)
+
+- **Encuestas y censos (JDS-30, JDS-31) — ✅ HECHO y desplegado.** Tablas nuevas (`encuestas`, `preguntas`, `respuestas_encuesta`, `respuesta_items`) creadas por create_all. Endpoints `/api/encuestas` (público listar/detalle/responder) y gestión (`/gestion`, crear, `PUT /{id}/publicar`, DELETE, `GET /{id}/resultados`) restringidos a dignatarios. Preguntas tipo `texto` u `opciones` (opciones en JSON). Frontend: panel para crear/publicar/resultados + portal público para responder. Enlaces "Encuestas".
+- **Notificaciones/correo (JDS-32 = item #2 de Juanca) — ⏳ PENDIENTE.** Falta: verificación de correo al registrarse, recuperar contraseña y avisos (respuesta a PQRS, etc.). Proveedor elegido: **Gmail SMTP** (Juanca genera una "contraseña de aplicación"; se pone `SMTP_HOST/SMTP_PORT/SMTP_USER/SMTP_PASSWORD/SMTP_FROM` en Render y `.env`). El backend ya tiene config SMTP (hoy en modo "simulado").
+- **Auto-logout** por inactividad (15 min, front). **Chat interno** solo entre admin/superadmin + sin autocorrector + toast de mensaje nuevo (sondeo 10s). **Lightbox** en imágenes de publicaciones.
 
 **Sprints 2 y 3 COMPLETADOS por parte del equipo de desarrollo.** Lo hecho:
 
