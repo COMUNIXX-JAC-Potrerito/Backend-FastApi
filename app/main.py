@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.routers.auth import router as auth_router
 from app.api.v1.routers.comunicaciones import router as comunicaciones_router
+from app.api.v1.routers.encuestas import router as encuestas_router
 from app.api.v1.routers.envios import router as envios_router
 from app.api.v1.routers.mensajes import router as mensajes_router
 from app.api.v1.routers.pqrs import router as pqrs_router
@@ -14,6 +15,7 @@ from app.core.config import settings
 from app.db.session import Base, engine
 from app.models import (  # noqa: F401  (importados para que Base registre las tablas antes de create_all)
     comunicacion,
+    encuesta,
     envio_masivo,
     mensaje,
     pqrs,
@@ -47,6 +49,7 @@ app.include_router(comunicaciones_router, prefix="/api")
 app.include_router(envios_router, prefix="/api")
 app.include_router(reportes_router, prefix="/api")
 app.include_router(uploads_router, prefix="/api")
+app.include_router(encuestas_router, prefix="/api")
 
 
 # GET y HEAD: los monitores de uptime (UptimeRobot, etc.) suelen usar HEAD.
