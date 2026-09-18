@@ -8,6 +8,7 @@ from app.services.pqrs.catalogos import (
 from app.services.pqrs.consultas import (
     obtener_asignadas,
     obtener_entrantes,
+    obtener_mias,
     obtener_por_id,
     obtener_todas,
 )
@@ -26,6 +27,11 @@ def listar_historial(db: Session):
 def listar_asignadas(db: Session, comite: str):
     asignadas = obtener_asignadas(db, comite)
     return [ocultar_si_anonima(pqrs) for pqrs in asignadas]
+
+
+def listar_mias(db: Session, usuario_id: int):
+    # El dueño ve sus PROPIAS PQRS completas (sin ocultar, son suyas).
+    return obtener_mias(db, usuario_id)
 
 
 def responder_pqrs(db: Session, pqrs_id: int, respuesta: str):

@@ -34,7 +34,11 @@ class RespuestaEncuesta(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     encuesta_id = Column(Integer, ForeignKey("encuestas.id"), nullable=False)
-    usuario_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # anónimo si es censo abierto
+    usuario_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    # Datos personales de quien responde (obligatorios para identificar la participación)
+    nombre = Column(String, nullable=True)
+    email = Column(String, nullable=True)
+    telefono = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
