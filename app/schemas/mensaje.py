@@ -14,6 +14,14 @@ class MensajeCreate(BaseModel):
     adjunto_nombre: str | None = None
 
 
+class EditarMensaje(BaseModel):
+    contenido: str
+
+
+class FijarMensaje(BaseModel):
+    fijado: bool
+
+
 class MensajeResponse(BaseModel):
     id: int
     remitente_id: int
@@ -21,6 +29,8 @@ class MensajeResponse(BaseModel):
     asunto: str
     contenido: str
     leido: bool
+    fijado: bool = False
+    editado: bool = False
     created_at: datetime
     adjunto_url: str | None = None
     adjunto_tipo: str | None = None

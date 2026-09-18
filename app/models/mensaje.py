@@ -14,6 +14,8 @@ class Mensaje(Base):
     asunto = Column(String, nullable=False)
     contenido = Column(String, nullable=False)
     leido = Column(Boolean, default=False)
+    fijado = Column(Boolean, default=False)   # mensaje fijado en la conversación
+    editado = Column(Boolean, default=False)  # se editó el contenido
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Adjunto opcional (multimedia/archivo) subido a Cloudinary.
