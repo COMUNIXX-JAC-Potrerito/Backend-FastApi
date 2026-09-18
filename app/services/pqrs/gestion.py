@@ -2,7 +2,6 @@ from sqlalchemy.orm import Session
 
 from app.services.pqrs.anonimato import ocultar_si_anonima
 from app.services.pqrs.catalogos import (
-    ESTADO_EN_PROCESO,
     es_comite_valido,
     es_estado_valido,
 )
@@ -51,7 +50,8 @@ def asignar_comite(db: Session, pqrs_id: int, comite: str):
         return None
 
     pqrs.comite = comite
-    pqrs.estado = ESTADO_EN_PROCESO  # al asignarse a un comité, pasa a estar en proceso
+    # No se cambia el estado: la PQRS sigue "Nueva" para el comité hasta que
+    # el dignatario la mueva a En_Proceso/Finalizada desde "Mis asignadas".
     db.commit()
     db.refresh(pqrs)
     return pqrs
