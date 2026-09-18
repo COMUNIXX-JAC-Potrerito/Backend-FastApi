@@ -4,8 +4,13 @@ from app.models.pqrs import PQRS
 
 
 def obtener_entrantes(db: Session):
-    # "Entrantes" = las solicitudes nuevas que aún no han sido atendidas
-    return db.query(PQRS).filter(PQRS.estado == "Nueva").all()
+    # "Entrantes" = solicitudes nuevas AÚN SIN asignar a un comité (por triar).
+    # Al asignarles comité salen de aquí y pasan a "Mis asignadas" del comité.
+    return (
+        db.query(PQRS)
+        .filter(PQRS.estado == "Nueva", PQRS.comite.is_(None))
+        .all()
+    )
 
 
 def obtener_todas(db: Session):
