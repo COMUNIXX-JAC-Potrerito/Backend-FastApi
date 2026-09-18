@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 
 from app.models.mensaje import Mensaje
 from app.models.user import User
+from app.services.auth.roles import ROLES_GESTION
 
 
 def enviar_mensaje(
@@ -14,10 +15,12 @@ def enviar_mensaje(
     adjunto_tipo: str | None = None,
     adjunto_nombre: str | None = None,
 ):
-    # Valida que el destinatario exista
+    # Valida que el destinatario exista y sea dignatario (admin/superadmin).
     destino = db.query(User).filter(User.id == destinatario_id).first()
     if destino is None:
         raise ValueError("El destinatario no existe")
+    if destino.role not in ROLES_GESTION:
+        raise ValueError("Solo se puede escribir a administradores o superadministradores")
 
     # Un mensaje debe tener texto o un adjunto (no puede ir totalmente vacío)
     if not contenido.strip() and not adjunto_url:
