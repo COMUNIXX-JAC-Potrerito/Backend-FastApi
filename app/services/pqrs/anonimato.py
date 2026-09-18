@@ -13,6 +13,7 @@ def ocultar_si_anonima(pqrs) -> dict:
         "es_anonima": pqrs.es_anonima,
         "comite": pqrs.comite,
         "respuesta": pqrs.respuesta,
+        "respuesta_fecha": pqrs.respuesta_fecha,
         "radicado_por_id": pqrs.radicado_por_id,
         "nombre_contacto": pqrs.nombre_contacto,
         "email_contacto": pqrs.email_contacto,

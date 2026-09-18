@@ -32,6 +32,7 @@ class PQRS(Base):
 
     comite = Column(String, nullable=True)  # se asigna después (PUT /pqrs/{id}/asignar)
     respuesta = Column(String, nullable=True)  # respuesta del dignatario (visible al ciudadano)
+    respuesta_fecha = Column(DateTime, nullable=True)  # cuándo se respondió (ventana de edición)
 
     # Adjunto opcional (multimedia/archivo) subido a Cloudinary al radicar.
     adjunto_url = Column(String, nullable=True)

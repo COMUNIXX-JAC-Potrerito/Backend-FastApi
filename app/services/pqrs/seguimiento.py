@@ -19,4 +19,9 @@ def consultar_por_codigo(db: Session, codigo: str):
         "comite": pqrs.comite,
         "created_at": pqrs.created_at,
         "updated_at": pqrs.updated_at,
+        # La respuesta de la JAC y el adjunto NO revelan identidad: se muestran.
+        "respuesta": pqrs.respuesta,
+        "adjunto_url": pqrs.adjunto_url,
+        "adjunto_tipo": pqrs.adjunto_tipo,
+        "adjunto_nombre": pqrs.adjunto_nombre,
     }
