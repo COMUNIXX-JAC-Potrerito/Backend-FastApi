@@ -26,6 +26,16 @@ def obtener_por_codigo(db: Session, codigo: str):
     return db.query(PQRS).filter(PQRS.codigo_seguimiento == codigo).first()
 
 
+def obtener_mias(db: Session, usuario_id: int):
+    # PQRS que radicó este usuario (las que tienen su FK), más recientes primero.
+    return (
+        db.query(PQRS)
+        .filter(PQRS.radicado_por_id == usuario_id)
+        .order_by(PQRS.created_at.desc())
+        .all()
+    )
+
+
 def obtener_asignadas(db: Session, comite: str):
     # PQRS asignadas a un comité/comisión concreto, de la más reciente a la más antigua
     return (

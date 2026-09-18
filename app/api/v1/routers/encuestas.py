@@ -124,14 +124,33 @@ def responder(
     db: Session = Depends(get_db),
     usuario: User | None = Depends(get_current_user_optional),
 ):
+    # Si viene logueado, se usan los datos de su cuenta.
+    if usuario is not None:
+        nombre = data.nombre or usuario.full_name
+        email = data.email or usuario.email
+        telefono = data.telefono or usuario.phone
+    else:
+        nombre, email, telefono = data.nombre, data.email, data.telefono
+
     _, error = responder_encuesta(
-        db, encuesta_id, data.items, usuario.id if usuario is not None else None
+        db,
+        encuesta_id,
+        data.items,
+        usuario.id if usuario is not None else None,
+        nombre,
+        email,
+        telefono,
     )
     if error == "no_existe":
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Encuesta no encontrada")
     if error == "no_publicada":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="La encuesta no está publicada"
+        )
+    if error == "datos_incompletos":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Indica tu nombre y un correo o teléfono para responder",
         )
     return {"ok": True}
 

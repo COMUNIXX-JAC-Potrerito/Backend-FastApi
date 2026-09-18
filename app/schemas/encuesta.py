@@ -54,6 +54,10 @@ class RespuestaItemCreate(BaseModel):
 
 class ResponderEncuesta(BaseModel):
     items: list[RespuestaItemCreate]
+    # Datos personales (si viene logueado se toman de su cuenta)
+    nombre: str | None = None
+    email: str | None = None
+    telefono: str | None = None
 
 
 # ---------- Resultados ----------

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user_optional, requiere_roles
+from app.api.deps import get_current_user, get_current_user_optional, requiere_roles
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.pqrs import (
@@ -20,6 +20,7 @@ from app.services.pqrs.gestion import (
     listar_asignadas,
     listar_entrantes,
     listar_historial,
+    listar_mias,
     responder_pqrs,
 )
 from app.services.pqrs.radicacion import crear_pqrs
@@ -96,6 +97,15 @@ def pqrs_historial(
     usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
 ):
     return listar_historial(db)
+
+
+@router.get("/pqrs/mias", response_model=list[PQRSResponse])
+def pqrs_mias(
+    db: Session = Depends(get_db),
+    usuario: User = Depends(get_current_user),
+):
+    # PQRS que radicó el propio usuario logueado.
+    return listar_mias(db, usuario.id)
 
 
 @router.get("/pqrs/asignadas", response_model=list[PQRSResponse])

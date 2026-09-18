@@ -7,14 +7,28 @@ from sqlalchemy.orm import Session
 from app.models.encuesta import Encuesta, Pregunta, RespuestaEncuesta, RespuestaItem
 
 
-def responder_encuesta(db: Session, encuesta_id: int, items, usuario_id):
+def responder_encuesta(
+    db: Session, encuesta_id: int, items, usuario_id, nombre, email, telefono
+):
     encuesta = db.query(Encuesta).filter(Encuesta.id == encuesta_id).first()
     if encuesta is None:
         return None, "no_existe"
     if not encuesta.publicada:
         return None, "no_publicada"
 
-    respuesta = RespuestaEncuesta(encuesta_id=encuesta_id, usuario_id=usuario_id)
+    # Datos personales obligatorios: nombre + (correo o teléfono)
+    if not (nombre and nombre.strip()):
+        return None, "datos_incompletos"
+    if not ((email and email.strip()) or (telefono and telefono.strip())):
+        return None, "datos_incompletos"
+
+    respuesta = RespuestaEncuesta(
+        encuesta_id=encuesta_id,
+        usuario_id=usuario_id,
+        nombre=nombre.strip(),
+        email=email.strip() if email else None,
+        telefono=telefono.strip() if telefono else None,
+    )
     db.add(respuesta)
     db.flush()
 

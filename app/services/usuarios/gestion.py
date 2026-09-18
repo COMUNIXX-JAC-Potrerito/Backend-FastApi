@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
 from app.models.user import User
-from app.services.auth.roles import es_rol_valido
+from app.services.auth.roles import ROLES_GESTION, es_rol_valido
 from app.services.pqrs.catalogos import es_comite_valido
 
 
@@ -28,6 +28,10 @@ def cambiar_comite(db: Session, user_id: int, nuevo_comite: str):
     usuario = db.query(User).filter(User.id == user_id).first()
     if usuario is None:
         return None
+
+    # Solo los dignatarios (admin/superadmin) pueden pertenecer a una comisión.
+    if comite and usuario.role not in ROLES_GESTION:
+        raise ValueError("Solo un dignatario (admin/superadmin) puede tener comisión")
 
     usuario.comite = comite or None
     db.commit()
