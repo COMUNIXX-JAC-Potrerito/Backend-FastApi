@@ -67,3 +67,46 @@ def marcar_leido(db: Session, mensaje_id: int, usuario_id: int):
     db.commit()
     db.refresh(mensaje)
     return mensaje
+
+
+def _participa(mensaje: Mensaje, usuario_id: int) -> bool:
+    return usuario_id in (mensaje.remitente_id, mensaje.destinatario_id)
+
+
+def eliminar_mensaje(db: Session, mensaje_id: int, usuario_id: int) -> bool:
+    mensaje = db.query(Mensaje).filter(Mensaje.id == mensaje_id).first()
+    # Cualquiera de los dos participantes puede eliminarlo.
+    if mensaje is None or not _participa(mensaje, usuario_id):
+        return False
+    db.delete(mensaje)
+    db.commit()
+    return True
+
+
+def editar_mensaje(db: Session, mensaje_id: int, usuario_id: int, contenido: str):
+    from datetime import datetime, timedelta
+
+    mensaje = db.query(Mensaje).filter(Mensaje.id == mensaje_id).first()
+    if mensaje is None:
+        return None, "no_existe"
+    # Solo el autor puede editar, y solo dentro de los 15 minutos.
+    if mensaje.remitente_id != usuario_id:
+        return None, "no_autorizado"
+    if datetime.utcnow() - mensaje.created_at > timedelta(minutes=15):
+        return None, "fuera_de_tiempo"
+
+    mensaje.contenido = contenido
+    mensaje.editado = True
+    db.commit()
+    db.refresh(mensaje)
+    return mensaje, None
+
+
+def fijar_mensaje(db: Session, mensaje_id: int, usuario_id: int, fijado: bool):
+    mensaje = db.query(Mensaje).filter(Mensaje.id == mensaje_id).first()
+    if mensaje is None or not _participa(mensaje, usuario_id):
+        return None
+    mensaje.fijado = fijado
+    db.commit()
+    db.refresh(mensaje)
+    return mensaje
