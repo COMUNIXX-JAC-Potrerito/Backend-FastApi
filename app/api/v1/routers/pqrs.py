@@ -37,6 +37,16 @@ def radicar_pqrs(
 ):
     # Si viene logueado, se asocia su id; si no (turista), queda sin FK.
     radicado_por_id = usuario.id if usuario is not None else None
+
+    nombre = data.nombre_contacto
+    email = data.email_contacto
+    telefono = data.telefono_contacto
+    # Si está logueado y NO es anónima, se usan sus datos de cuenta automáticamente.
+    if usuario is not None and not data.es_anonima:
+        nombre = nombre or usuario.full_name
+        email = email or usuario.email
+        telefono = telefono or usuario.phone
+
     try:
         pqrs = crear_pqrs(
             db,
@@ -44,9 +54,9 @@ def radicar_pqrs(
             asunto=data.asunto,
             descripcion=data.descripcion,
             es_anonima=data.es_anonima,
-            nombre_contacto=data.nombre_contacto,
-            email_contacto=data.email_contacto,
-            telefono_contacto=data.telefono_contacto,
+            nombre_contacto=nombre,
+            email_contacto=email,
+            telefono_contacto=telefono,
             radicado_por_id=radicado_por_id,
             adjunto_url=data.adjunto_url,
             adjunto_tipo=data.adjunto_tipo,

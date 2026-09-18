@@ -19,6 +19,7 @@ class PQRSResponse(BaseModel):
     telefono_contacto: str | None = None
     created_at: datetime
     respuesta: str | None = None
+    respuesta_fecha: datetime | None = None
     # Adjunto opcional (multimedia/archivo)
     adjunto_url: str | None = None
     adjunto_tipo: str | None = None

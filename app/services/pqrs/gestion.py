@@ -30,10 +30,13 @@ def listar_asignadas(db: Session, comite: str):
 
 
 def responder_pqrs(db: Session, pqrs_id: int, respuesta: str):
+    from datetime import datetime
+
     pqrs = obtener_por_id(db, pqrs_id)
     if pqrs is None:
         return None
     pqrs.respuesta = respuesta
+    pqrs.respuesta_fecha = datetime.utcnow()
     db.commit()
     db.refresh(pqrs)
     return pqrs
