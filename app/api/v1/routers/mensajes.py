@@ -30,6 +30,7 @@ def enviar(
     db: Session = Depends(get_db),
     usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
 ):
+    """Envía un mensaje interno a otro dignatario (con adjunto opcional)."""
     try:
         return enviar_mensaje(
             db,
@@ -50,6 +51,7 @@ def bandeja_entrada(
     db: Session = Depends(get_db),
     usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
 ):
+    """Devuelve los mensajes recibidos por el dignatario logueado."""
     return recibidos(db, usuario.id)
 
 
@@ -58,6 +60,7 @@ def bandeja_enviados(
     db: Session = Depends(get_db),
     usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
 ):
+    """Devuelve los mensajes que envió el dignatario logueado."""
     return enviados(db, usuario.id)
 
 
@@ -67,6 +70,7 @@ def leer(
     db: Session = Depends(get_db),
     usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
 ):
+    """Marca un mensaje recibido como leído (404 si no es tuyo o no existe)."""
     mensaje = marcar_leido(db, mensaje_id, usuario.id)
     if mensaje is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Mensaje no encontrado")
@@ -80,6 +84,7 @@ def editar(
     db: Session = Depends(get_db),
     usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
 ):
+    """Edita el contenido de un mensaje propio (solo el autor, dentro de los 15 min)."""
     mensaje, error = editar_mensaje(db, mensaje_id, usuario.id, data.contenido)
     if error == "no_existe":
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Mensaje no encontrado")
@@ -100,6 +105,7 @@ def fijar(
     db: Session = Depends(get_db),
     usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
 ):
+    """Fija o desfija un mensaje de la conversación (cualquiera de los dos participantes)."""
     mensaje = fijar_mensaje(db, mensaje_id, usuario.id, data.fijado)
     if mensaje is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Mensaje no encontrado")
@@ -112,5 +118,6 @@ def eliminar(
     db: Session = Depends(get_db),
     usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
 ):
+    """Elimina un mensaje (cualquiera de los dos participantes puede borrarlo)."""
     if not eliminar_mensaje(db, mensaje_id, usuario.id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Mensaje no encontrado")

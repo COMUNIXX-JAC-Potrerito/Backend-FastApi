@@ -28,6 +28,7 @@ router = APIRouter()
 
 
 def _detalle(encuesta, preguntas) -> dict:
+    """Arma el dict de la encuesta con sus preguntas (opciones ya como lista)."""
     return {
         "id": encuesta.id,
         "titulo": encuesta.titulo,
@@ -51,6 +52,7 @@ def _detalle(encuesta, preguntas) -> dict:
 # ---------- Público: encuestas publicadas ----------
 @router.get("/encuestas", response_model=list[EncuestaResumen])
 def listar_publicas(db: Session = Depends(get_db)):
+    """Lista las encuestas publicadas (para la comunidad)."""
     return listar_encuestas(db, solo_publicadas=True)
 
 
@@ -60,6 +62,7 @@ def listar_gestion(
     db: Session = Depends(get_db),
     usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
 ):
+    """Lista TODAS las encuestas, incluye borradores. Solo dignatarios."""
     return listar_encuestas(db, solo_publicadas=False)
 
 
@@ -69,6 +72,7 @@ def detalle(
     db: Session = Depends(get_db),
     usuario: User | None = Depends(get_current_user_optional),
 ):
+    """Devuelve una encuesta con sus preguntas (las no publicadas solo las ven dignatarios)."""
     encuesta = obtener_encuesta(db, encuesta_id)
     if encuesta is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Encuesta no encontrada")
@@ -84,6 +88,7 @@ def crear(
     db: Session = Depends(get_db),
     usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
 ):
+    """Crea una encuesta/censo con sus preguntas. Solo dignatarios."""
     try:
         encuesta = crear_encuesta(
             db, data.titulo, data.descripcion, data.tipo, data.preguntas, usuario.id
@@ -100,6 +105,7 @@ def publicar(
     db: Session = Depends(get_db),
     usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
 ):
+    """Publica o despublica una encuesta. Solo dignatarios."""
     encuesta = publicar_encuesta(db, encuesta_id, data.publicada)
     if encuesta is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Encuesta no encontrada")
@@ -112,6 +118,7 @@ def borrar(
     db: Session = Depends(get_db),
     usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
 ):
+    """Elimina una encuesta y sus respuestas. Solo dignatarios."""
     if not eliminar_encuesta(db, encuesta_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Encuesta no encontrada")
 
@@ -124,6 +131,7 @@ def responder(
     db: Session = Depends(get_db),
     usuario: User | None = Depends(get_current_user_optional),
 ):
+    """Registra la respuesta de la comunidad a una encuesta (público, con datos personales)."""
     # Si viene logueado, se usan los datos de su cuenta.
     if usuario is not None:
         nombre = data.nombre or usuario.full_name
@@ -162,6 +170,7 @@ def ver_resultados(
     db: Session = Depends(get_db),
     usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
 ):
+    """Devuelve los resultados agregados de una encuesta. Solo dignatarios."""
     datos = resultados(db, encuesta_id)
     if datos is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Encuesta no encontrada")

@@ -36,6 +36,7 @@ def radicar_pqrs(
     db: Session = Depends(get_db),
     usuario: User | None = Depends(get_current_user_optional),
 ):
+    """Radica una PQRS (público). Si hay sesión, asocia al usuario y usa sus datos."""
     # Si viene logueado, se asocia su id; si no (turista), queda sin FK.
     radicado_por_id = usuario.id if usuario is not None else None
 
@@ -73,6 +74,7 @@ def radicar_pqrs(
 # ---------- Público: consultar el estado por código ----------
 @router.get("/pqrs/seguimiento/{codigo}", response_model=PQRSSeguimiento)
 def seguimiento_pqrs(codigo: str, db: Session = Depends(get_db)):
+    """Consulta pública del estado de una PQRS por su código (404 si no existe)."""
     pqrs = consultar_por_codigo(db, codigo)
     if pqrs is None:
         raise HTTPException(
@@ -88,6 +90,7 @@ def pqrs_entrantes(
     db: Session = Depends(get_db),
     usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
 ):
+    """Lista las PQRS entrantes (nuevas y sin comité asignado). Solo dignatarios."""
     return listar_entrantes(db)
 
 
@@ -96,6 +99,7 @@ def pqrs_historial(
     db: Session = Depends(get_db),
     usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
 ):
+    """Lista TODAS las PQRS (historial), con el anonimato aplicado. Solo dignatarios."""
     return listar_historial(db)
 
 
@@ -104,7 +108,7 @@ def pqrs_mias(
     db: Session = Depends(get_db),
     usuario: User = Depends(get_current_user),
 ):
-    # PQRS que radicó el propio usuario logueado.
+    """Lista las PQRS que radicó el propio usuario logueado."""
     return listar_mias(db, usuario.id)
 
 
@@ -113,7 +117,7 @@ def pqrs_asignadas(
     db: Session = Depends(get_db),
     usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
 ):
-    # PQRS asignadas a la comisión del dignatario. Si no tiene comisión, lista vacía.
+    """Lista las PQRS de la comisión del dignatario (vacío si no tiene comisión)."""
     if not usuario.comite:
         return []
     return listar_asignadas(db, usuario.comite)
@@ -126,6 +130,7 @@ def responder(
     db: Session = Depends(get_db),
     usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
 ):
+    """Guarda la respuesta de la JAC a una PQRS (visible al ciudadano). Solo dignatarios."""
     pqrs = responder_pqrs(db, pqrs_id, data.respuesta)
     if pqrs is None:
         raise HTTPException(
@@ -141,6 +146,7 @@ def asignar(
     db: Session = Depends(get_db),
     usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
 ):
+    """Asigna un comité a una PQRS (400 si el comité es inválido, 404 si no existe)."""
     try:
         pqrs = asignar_comite(db, pqrs_id, data.comite)
     except ValueError as error:
@@ -159,6 +165,7 @@ def actualizar_estado(
     db: Session = Depends(get_db),
     usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
 ):
+    """Cambia el estado de una PQRS (Nueva/En_Proceso/Finalizada). Solo dignatarios."""
     try:
         pqrs = cambiar_estado(db, pqrs_id, data.estado)
     except ValueError as error:

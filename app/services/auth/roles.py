@@ -16,4 +16,5 @@ ROLES_GESTION = [ROL_ADMIN, ROL_SUPERADMIN]
 
 
 def es_rol_valido(rol: str) -> bool:
+    """Indica si el rol está entre los 4 válidos (usuario/administrador/superadministrador/entidad)."""
     return rol in ROLES_VALIDOS

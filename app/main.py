@@ -1,6 +1,10 @@
+# Este archivo crea la aplicación principal de FastAPI y registra todos los routers
+# del backend para que cada módulo (usuarios, mensajes, encuestas, etc.) quede disponible
+# bajo la API del sistema.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+# Importa los routers que exponen los endpoints HTTP de cada área del sistema.
 from app.api.v1.routers.auth import router as auth_router
 from app.api.v1.routers.comunicaciones import router as comunicaciones_router
 from app.api.v1.routers.encuestas import router as encuestas_router
@@ -23,14 +27,18 @@ from app.models import (  # noqa: F401  (importados para que Base registre las t
     user,
 )
 
-# Crea las tablas que aún no existan al arrancar (users, etc.)
+# Crea las tablas que aún no existan al arrancar la API y asegura que los modelos
+# estén registrados antes de ejecutar la base de datos.
 Base.metadata.create_all(bind=engine)
 
+# Instancia principal de la aplicación FastAPI que expone los endpoints del backend.
 app = FastAPI(title="COMUNIX API")
 
-# Orígenes permitidos (dev + los que se configuren en producción vía CORS_ORIGINS).
+# Orígenes permitidos para CORS: define qué dominios frontend pueden consumir la API.
+# Esto evita errores de seguridad cuando el cliente corre en localhost o un deploy externo.
 origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
 
+# Configura el middleware de CORS para permitir peticiones desde los orígenes autorizados.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -40,6 +48,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Registra cada grupo de rutas según el módulo funcional del sistema.
 app.include_router(auth_router, prefix="/api")
 app.include_router(pqrs_router, prefix="/api")
 app.include_router(usuarios_router, prefix="/api")
@@ -52,7 +61,8 @@ app.include_router(uploads_router, prefix="/api")
 app.include_router(encuestas_router, prefix="/api")
 
 
-# GET y HEAD: los monitores de uptime (UptimeRobot, etc.) suelen usar HEAD.
+# Endpoint de salud para comprobar que la API está viva y disponible.
+# GET y HEAD: los monitores de uptime suelen requerir HEAD para verificar disponibilidad.
 @app.api_route("/health", methods=["GET", "HEAD"])
 def health_check():
     return {"status": "ok"}

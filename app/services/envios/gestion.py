@@ -6,6 +6,7 @@ from app.services.envios.correo import enviar_correos
 
 
 def enviar_masivo(db: Session, asunto: str, contenido: str, enviado_por_id: int | None):
+    """Envía un comunicado a todos los correos registrados y guarda el registro del envío."""
     # Destinatarios = todos los usuarios registrados con correo
     correos = [u.email for u in db.query(User).filter(User.email.isnot(None)).all()]
 

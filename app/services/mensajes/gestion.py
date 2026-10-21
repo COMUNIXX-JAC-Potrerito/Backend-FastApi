@@ -15,6 +15,7 @@ def enviar_mensaje(
     adjunto_tipo: str | None = None,
     adjunto_nombre: str | None = None,
 ):
+    """Crea un mensaje interno (valida que el destinatario sea dignatario y que no vaya vacío)."""
     # Valida que el destinatario exista y sea dignatario (admin/superadmin).
     destino = db.query(User).filter(User.id == destinatario_id).first()
     if destino is None:
@@ -42,6 +43,7 @@ def enviar_mensaje(
 
 
 def recibidos(db: Session, usuario_id: int):
+    """Devuelve los mensajes recibidos por un usuario, más recientes primero."""
     return (
         db.query(Mensaje)
         .filter(Mensaje.destinatario_id == usuario_id)
@@ -51,6 +53,7 @@ def recibidos(db: Session, usuario_id: int):
 
 
 def enviados(db: Session, usuario_id: int):
+    """Devuelve los mensajes enviados por un usuario, más recientes primero."""
     return (
         db.query(Mensaje)
         .filter(Mensaje.remitente_id == usuario_id)
@@ -60,6 +63,7 @@ def enviados(db: Session, usuario_id: int):
 
 
 def marcar_leido(db: Session, mensaje_id: int, usuario_id: int):
+    """Marca un mensaje como leído solo si el usuario es el destinatario."""
     mensaje = db.query(Mensaje).filter(Mensaje.id == mensaje_id).first()
     if mensaje is None or mensaje.destinatario_id != usuario_id:
         return None
@@ -70,10 +74,12 @@ def marcar_leido(db: Session, mensaje_id: int, usuario_id: int):
 
 
 def _participa(mensaje: Mensaje, usuario_id: int) -> bool:
+    """Indica si el usuario es el remitente o el destinatario del mensaje."""
     return usuario_id in (mensaje.remitente_id, mensaje.destinatario_id)
 
 
 def eliminar_mensaje(db: Session, mensaje_id: int, usuario_id: int) -> bool:
+    """Borra un mensaje si el usuario participa en él; True si se borró."""
     mensaje = db.query(Mensaje).filter(Mensaje.id == mensaje_id).first()
     # Cualquiera de los dos participantes puede eliminarlo.
     if mensaje is None or not _participa(mensaje, usuario_id):
@@ -84,6 +90,7 @@ def eliminar_mensaje(db: Session, mensaje_id: int, usuario_id: int) -> bool:
 
 
 def editar_mensaje(db: Session, mensaje_id: int, usuario_id: int, contenido: str):
+    """Edita un mensaje propio dentro de 15 min; devuelve (mensaje, error|None)."""
     from datetime import datetime, timedelta
 
     mensaje = db.query(Mensaje).filter(Mensaje.id == mensaje_id).first()
@@ -103,6 +110,7 @@ def editar_mensaje(db: Session, mensaje_id: int, usuario_id: int, contenido: str
 
 
 def fijar_mensaje(db: Session, mensaje_id: int, usuario_id: int, fijado: bool):
+    """Fija o desfija un mensaje si el usuario participa en la conversación."""
     mensaje = db.query(Mensaje).filter(Mensaje.id == mensaje_id).first()
     if mensaje is None or not _participa(mensaje, usuario_id):
         return None

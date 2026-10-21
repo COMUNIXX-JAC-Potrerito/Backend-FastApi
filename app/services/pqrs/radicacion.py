@@ -18,6 +18,7 @@ def crear_pqrs(
     adjunto_tipo: str | None = None,
     adjunto_nombre: str | None = None,
 ) -> PQRS:
+    """Crea y guarda una PQRS (valida el tipo; exige datos de contacto si no es anónima)."""
     if not es_tipo_valido(tipo):
         raise ValueError("El tipo de PQRS no es válido (Peticion, Queja, Reclamo o Sugerencia)")
 

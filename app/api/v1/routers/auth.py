@@ -1,3 +1,4 @@
+# Rutas de autenticación: registro de usuarios y login para generar tokens JWT.
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -6,9 +7,11 @@ from app.schemas.token import Token
 from app.schemas.user import UserCreate, UserLogin, UserResponse
 from app.services.auth.gestion import login_user, register_user
 
+# Router de autenticación del prefijo /api.
 router = APIRouter()
 
 
+# Registra un nuevo usuario y devuelve la información pública del usuario creado.
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def register(data: UserCreate, db: Session = Depends(get_db)):
     try:
@@ -22,6 +25,7 @@ def register(data: UserCreate, db: Session = Depends(get_db)):
     return user
 
 
+# Valida credenciales y devuelve un token JWT para acceder a rutas protegidas.
 @router.post("/login", response_model=Token)
 def login(credentials: UserLogin, db: Session = Depends(get_db)):
     access_token = login_user(db, credentials.email, credentials.password)
