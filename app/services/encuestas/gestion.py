@@ -11,6 +11,7 @@ TIPOS_PREGUNTA = ["texto", "opciones"]
 
 
 def crear_encuesta(db: Session, titulo, descripcion, tipo, preguntas, created_by_id):
+    """Crea una encuesta/censo con sus preguntas (valida tipo y opciones)."""
     if tipo not in TIPOS_ENCUESTA:
         raise ValueError("El tipo debe ser 'encuesta' o 'censo'")
     if not preguntas:
@@ -50,6 +51,7 @@ def crear_encuesta(db: Session, titulo, descripcion, tipo, preguntas, created_by
 
 
 def listar_encuestas(db: Session, solo_publicadas: bool):
+    """Lista encuestas (solo publicadas o todas), más recientes primero."""
     query = db.query(Encuesta)
     if solo_publicadas:
         query = query.filter(Encuesta.publicada.is_(True))
@@ -57,6 +59,7 @@ def listar_encuestas(db: Session, solo_publicadas: bool):
 
 
 def obtener_preguntas(db: Session, encuesta_id: int):
+    """Devuelve las preguntas de una encuesta en orden."""
     return (
         db.query(Pregunta)
         .filter(Pregunta.encuesta_id == encuesta_id)
@@ -66,10 +69,12 @@ def obtener_preguntas(db: Session, encuesta_id: int):
 
 
 def obtener_encuesta(db: Session, encuesta_id: int):
+    """Busca una encuesta por su id; None si no existe."""
     return db.query(Encuesta).filter(Encuesta.id == encuesta_id).first()
 
 
 def publicar_encuesta(db: Session, encuesta_id: int, publicada: bool):
+    """Publica o despublica una encuesta; None si no existe."""
     encuesta = obtener_encuesta(db, encuesta_id)
     if encuesta is None:
         return None
@@ -80,6 +85,7 @@ def publicar_encuesta(db: Session, encuesta_id: int, publicada: bool):
 
 
 def eliminar_encuesta(db: Session, encuesta_id: int) -> bool:
+    """Borra una encuesta y todo lo suyo (respuestas, items y preguntas); True si existía."""
     encuesta = obtener_encuesta(db, encuesta_id)
     if encuesta is None:
         return False
@@ -106,6 +112,7 @@ def eliminar_encuesta(db: Session, encuesta_id: int) -> bool:
 
 
 def opciones_a_lista(opciones_json: str | None) -> list[str] | None:
+    """Convierte las opciones guardadas como JSON de vuelta a lista; None si no hay."""
     if not opciones_json:
         return None
     try:

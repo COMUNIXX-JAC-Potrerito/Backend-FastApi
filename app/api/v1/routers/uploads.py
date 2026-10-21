@@ -19,6 +19,7 @@ TIPOS_EXTRA = {
 
 
 def _tipo_permitido(content_type: str | None) -> bool:
+    """Indica si el tipo de archivo está permitido (imagen/video/audio o documento)."""
     if content_type is None:
         return False
     if content_type.startswith(PREFIJOS_PERMITIDOS):

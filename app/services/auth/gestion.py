@@ -1,3 +1,4 @@
+# Lógica de negocio para autenticación y registro de usuarios.
 from sqlalchemy.orm import Session
 
 from app.models.user import User
@@ -6,6 +7,7 @@ from app.services.auth.tokens import create_access_token
 from app.services.auth.validaciones import is_password_strong, is_valid_email
 
 
+# Verifica si el usuario existe y si la contraseña ingresada coincide con la hasheada.
 def authenticate_user(db: Session, email: str, password: str):
     user = db.query(User).filter(User.email == email).first()
 
@@ -18,6 +20,7 @@ def authenticate_user(db: Session, email: str, password: str):
     return user
 
 
+# Genera un JWT para un usuario autenticado y lo usa como credencial de sesión.
 def login_user(db: Session, email: str, password: str):
     user = authenticate_user(db, email, password)
 
@@ -30,6 +33,7 @@ def login_user(db: Session, email: str, password: str):
     return access_token
 
 
+# Registra un nuevo usuario con validación de correo, contraseña y duplicados.
 def register_user(db: Session, full_name: str, email: str, password: str, phone: str) -> User:
     if not is_valid_email(email):
         raise ValueError("El correo no tiene un formato válido")

@@ -19,6 +19,7 @@ router = APIRouter()
 # ---------- Público: la comunidad ve las publicaciones (HU14) ----------
 @router.get("/publicaciones", response_model=list[PublicacionResponse])
 def listar(categoria: str | None = None, db: Session = Depends(get_db)):
+    """Lista las publicaciones para la comunidad (filtrando por categoría si se indica)."""
     return listar_publicaciones(db, categoria)
 
 
@@ -29,6 +30,7 @@ def crear(
     db: Session = Depends(get_db),
     usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
 ):
+    """Crea una publicación (con multimedia opcional). Solo dignatarios."""
     try:
         publicacion = crear_publicacion(
             db,
@@ -53,6 +55,7 @@ def editar(
     db: Session = Depends(get_db),
     usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
 ):
+    """Edita una publicación existente (404 si no existe). Solo dignatarios."""
     try:
         publicacion = actualizar_publicacion(
             db,
@@ -78,5 +81,6 @@ def borrar(
     db: Session = Depends(get_db),
     usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
 ):
+    """Elimina una publicación por id (404 si no existe). Solo dignatarios."""
     if not eliminar_publicacion(db, publicacion_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Publicación no encontrada")

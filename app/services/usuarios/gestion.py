@@ -6,6 +6,7 @@ from app.services.pqrs.catalogos import es_comite_valido
 
 
 def cambiar_rol(db: Session, user_id: int, nuevo_rol: str):
+    """Cambia el rol de un usuario (valida el rol); None si el usuario no existe."""
     if not es_rol_valido(nuevo_rol):
         raise ValueError("El rol indicado no es válido")
 
@@ -20,6 +21,7 @@ def cambiar_rol(db: Session, user_id: int, nuevo_rol: str):
 
 
 def cambiar_comite(db: Session, user_id: int, nuevo_comite: str):
+    """Asigna/quita la comisión de un usuario (solo dignatarios pueden tenerla)."""
     # Cadena vacía = quitar la comisión.
     comite = nuevo_comite.strip()
     if comite and not es_comite_valido(comite):

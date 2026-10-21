@@ -1,3 +1,5 @@
+# Dependencias reutilizables de FastAPI para autenticación y autorización.
+# Permiten restringir rutas según si el usuario está logueado y qué rol tiene.
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
@@ -13,6 +15,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/login")
 oauth2_scheme_opcional = OAuth2PasswordBearer(tokenUrl="api/login", auto_error=False)
 
 
+# Busca el usuario propietario del JWT recibido en la base de datos.
 def _usuario_desde_token(token: str, db: Session) -> User | None:
     payload = decode_access_token(token)
     if payload is None:
@@ -25,6 +28,7 @@ def _usuario_desde_token(token: str, db: Session) -> User | None:
     return db.query(User).filter(User.email == email).first()
 
 
+# Dependencia que fuerza autenticación obligatoria para una ruta de la API.
 def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db),
@@ -40,6 +44,7 @@ def get_current_user(
     return usuario
 
 
+# Dependencia opcional: si viene un token válido, identifica al usuario; si no, retorna None.
 def get_current_user_optional(
     token: str | None = Depends(oauth2_scheme_opcional),
     db: Session = Depends(get_db),
@@ -51,6 +56,7 @@ def get_current_user_optional(
     return _usuario_desde_token(token, db)
 
 
+# Crea una dependencia que exige el rol indicado para acceder a cierto endpoint.
 def requiere_roles(*roles_permitidos: str):
     """Crea una dependencia que exige estar autenticado Y tener uno de los
     roles indicados. Si el rol no está permitido, lanza 403."""

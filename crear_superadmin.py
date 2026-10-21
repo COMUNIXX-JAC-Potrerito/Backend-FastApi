@@ -15,6 +15,7 @@ from app.services.auth.roles import ROL_SUPERADMIN
 
 
 def main() -> None:
+    """Lee el correo de los argumentos y promueve ese usuario a superadministrador."""
     if len(sys.argv) < 2:
         print("Uso: uv run python crear_superadmin.py <correo>")
         return

@@ -34,12 +34,15 @@ COMITES_VALIDOS = [
 
 
 def es_tipo_valido(tipo: str) -> bool:
+    """Indica si el tipo de PQRS es válido (Peticion/Queja/Reclamo/Sugerencia)."""
     return tipo in TIPOS_VALIDOS
 
 
 def es_estado_valido(estado: str) -> bool:
+    """Indica si el estado de PQRS es válido (Nueva/En_Proceso/Finalizada)."""
     return estado in ESTADOS_VALIDOS
 
 
 def es_comite_valido(comite: str) -> bool:
+    """Indica si el comité/cargo está en la lista de comités válidos de la JAC."""
     return comite in COMITES_VALIDOS

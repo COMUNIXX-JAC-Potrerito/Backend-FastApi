@@ -15,4 +15,5 @@ def reporte_resumen(
     db: Session = Depends(get_db),
     usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
 ):
+    """Devuelve el resumen con los conteos del sistema (usuarios, PQRS, publicaciones, etc.)."""
     return resumen(db)

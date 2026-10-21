@@ -8,6 +8,7 @@ TIPOS_VALIDOS = ["enviada", "recibida"]
 
 
 def es_tipo_valido(tipo: str) -> bool:
+    """Indica si el tipo de comunicación es válido ('enviada' o 'recibida')."""
     return tipo in TIPOS_VALIDOS
 
 
@@ -20,6 +21,7 @@ def registrar(
     fecha: datetime | None,
     registrado_por_id: int | None,
 ):
+    """Crea y guarda una comunicación externa en la bitácora (valida el tipo)."""
     if not es_tipo_valido(tipo):
         raise ValueError("El tipo debe ser 'enviada' o 'recibida'")
 
@@ -38,6 +40,7 @@ def registrar(
 
 
 def listar(db: Session, tipo: str | None = None):
+    """Devuelve las comunicaciones (filtradas por tipo si se indica), más recientes primero."""
     query = db.query(Comunicacion)
     if tipo:
         query = query.filter(Comunicacion.tipo == tipo)
@@ -45,6 +48,7 @@ def listar(db: Session, tipo: str | None = None):
 
 
 def eliminar(db: Session, comunicacion_id: int) -> bool:
+    """Borra una comunicación por id; devuelve True si existía y False si no."""
     comunicacion = db.query(Comunicacion).filter(Comunicacion.id == comunicacion_id).first()
     if comunicacion is None:
         return False

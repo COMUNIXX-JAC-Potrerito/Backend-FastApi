@@ -1,3 +1,4 @@
+# Operaciones CRUD para publicaciones institucionales: listar, crear, editar y borrar.
 from datetime import datetime
 
 from sqlalchemy.orm import Session
@@ -7,10 +8,12 @@ from app.services.publicaciones.catalogos import es_categoria_valida
 from app.services.publicaciones.consultas import obtener_por_id, obtener_todas
 
 
+# Devuelve todas las publicaciones, opcionalmente filtradas por categoría.
 def listar_publicaciones(db: Session, categoria: str | None = None):
     return obtener_todas(db, categoria)
 
 
+# Crea una nueva publicación con validación de categoría y almacenamiento de adjuntos.
 def crear_publicacion(
     db: Session,
     categoria: str,
@@ -41,6 +44,7 @@ def crear_publicacion(
     return publicacion
 
 
+# Actualiza una publicación existente para cambiar su contenido, categoría o adjunto.
 def actualizar_publicacion(
     db: Session,
     publicacion_id: int,
@@ -71,6 +75,7 @@ def actualizar_publicacion(
     return publicacion
 
 
+# Elimina una publicación si existe; devuelve True cuando se borra correctamente.
 def eliminar_publicacion(db: Session, publicacion_id: int) -> bool:
     publicacion = obtener_por_id(db, publicacion_id)
     if publicacion is None:

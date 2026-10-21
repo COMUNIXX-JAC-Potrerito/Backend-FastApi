@@ -17,6 +17,9 @@ def enviar(
     db: Session = Depends(get_db),
     usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
 ):
-    # Envía a todos los usuarios registrados. Si no hay SMTP configurado,
-    # queda en modo "simulado" (registra el envío sin mandar correos reales).
+    """Envía un comunicado por correo a todos los usuarios registrados.
+
+    Si no hay SMTP configurado, queda en modo 'simulado' (registra el envío
+    sin mandar correos reales).
+    """
     return enviar_masivo(db, data.asunto, data.contenido, usuario.id)

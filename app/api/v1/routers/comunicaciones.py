@@ -17,6 +17,7 @@ def crear(
     db: Session = Depends(get_db),
     usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
 ):
+    """Registra una comunicación externa (enviada/recibida) en la bitácora. Solo dignatarios."""
     try:
         return registrar(
             db,
@@ -37,6 +38,7 @@ def obtener(
     db: Session = Depends(get_db),
     usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
 ):
+    """Lista las comunicaciones externas (filtrando por tipo si se indica)."""
     return listar(db, tipo)
 
 
@@ -46,5 +48,6 @@ def borrar(
     db: Session = Depends(get_db),
     usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
 ):
+    """Elimina una comunicación de la bitácora por su id (404 si no existe)."""
     if not eliminar(db, comunicacion_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comunicación no encontrada")

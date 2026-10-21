@@ -8,4 +8,5 @@ CATEGORIAS_VALIDAS = [CATEGORIA_DECISION, CATEGORIA_ACTIVIDAD, CATEGORIA_CONTENI
 
 
 def es_categoria_valida(categoria: str) -> bool:
+    """Indica si la categoría de publicación es válida (decision/actividad/contenido)."""
     return categoria in CATEGORIAS_VALIDAS

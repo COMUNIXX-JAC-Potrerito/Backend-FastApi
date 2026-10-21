@@ -10,6 +10,7 @@ from app.models.encuesta import Encuesta, Pregunta, RespuestaEncuesta, Respuesta
 def responder_encuesta(
     db: Session, encuesta_id: int, items, usuario_id, nombre, email, telefono
 ):
+    """Guarda una respuesta a la encuesta (exige datos personales); devuelve (respuesta, error|None)."""
     encuesta = db.query(Encuesta).filter(Encuesta.id == encuesta_id).first()
     if encuesta is None:
         return None, "no_existe"
@@ -46,6 +47,7 @@ def responder_encuesta(
 
 
 def resultados(db: Session, encuesta_id: int):
+    """Calcula los resultados: conteo por opción o lista de respuestas de texto por pregunta."""
     encuesta = db.query(Encuesta).filter(Encuesta.id == encuesta_id).first()
     if encuesta is None:
         return None

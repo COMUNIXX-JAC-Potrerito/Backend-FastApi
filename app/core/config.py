@@ -1,8 +1,12 @@
+# Configuración central de la aplicación: lee variables de entorno y centraliza
+# la conexión a la base de datos, JWT y servicios externos como SMTP y Cloudinary.
 from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
+    # URL de conexión a la base de datos (SQLite, PostgreSQL, etc.).
     database_url: str
+    # Clave secreta usada para firmar y verificar tokens JWT de autenticación.
     secret_key: str
 
     # Orígenes permitidos por CORS, separados por coma.
@@ -28,6 +32,9 @@ class Settings(BaseSettings):
     cloudinary_url: str | None = None
 
     class Config:
+        # Carga las variables de entorno desde un archivo .env en el proyecto.
         env_file = ".env"
 
+
+# Instancia global con todas las configuraciones leídas del entorno.
 settings = Settings()
