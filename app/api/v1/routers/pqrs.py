@@ -130,7 +130,7 @@ def responder(
     db: Session = Depends(get_db),
     usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
 ):
-    """Guarda la respuesta de la JAC a una PQRS (visible al ciudadano). Solo dignatarios."""
+    """Guarda la respuesta de la JAC a una PQRS y la pasa a En_Proceso. Solo dignatarios."""
     pqrs = responder_pqrs(db, pqrs_id, data.respuesta)
     if pqrs is None:
         raise HTTPException(
@@ -165,7 +165,7 @@ def actualizar_estado(
     db: Session = Depends(get_db),
     usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
 ):
-    """Cambia el estado de una PQRS (Nueva/En_Proceso/Finalizada). Solo dignatarios."""
+    """Cambia el estado de una PQRS (Nueva/En_Proceso/En_Espera/Finalizada). Solo dignatarios."""
     try:
         pqrs = cambiar_estado(db, pqrs_id, data.estado)
     except ValueError as error:
