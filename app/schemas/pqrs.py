@@ -17,7 +17,8 @@ class PQRSResponse(BaseModel):
     nombre_contacto: str | None = None
     email_contacto: str | None = None
     telefono_contacto: str | None = None
-    created_at: datetime
+    created_at: datetime  # fecha y hora de radicación
+    updated_at: datetime | None = None  # fecha y hora de la última actualización
     respuesta: str | None = None
     respuesta_fecha: datetime | None = None
     # Adjunto opcional (multimedia/archivo)
