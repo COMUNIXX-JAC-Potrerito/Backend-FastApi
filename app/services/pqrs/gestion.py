@@ -52,7 +52,13 @@ def responder_pqrs(db: Session, pqrs_id: int, respuesta: str):
 
 
 def asignar_comite(db: Session, pqrs_id: int, comite: str):
-    """Asigna un comité a la PQRS (valida el comité; NO cambia el estado)."""
+    """Asigna un comité a la PQRS. NO cambia el estado: sigue "Nueva" para el comité.
+
+    Se separa la asignación (responsable) del estado (ciclo de vida), como en
+    las mesas de ayuda. Al asignar, la PQRS sale de "Entrantes" (ya tiene
+    comité) y aparece en "Mis asignadas / Nuevas" del comité, que luego la
+    mueve a En_Proceso y Finalizada.
+    """
     if not es_comite_valido(comite):
         raise ValueError("El comité/cargo indicado no es válido")
 
@@ -61,8 +67,7 @@ def asignar_comite(db: Session, pqrs_id: int, comite: str):
         return None
 
     pqrs.comite = comite
-    # No se cambia el estado: la PQRS sigue "Nueva" para el comité hasta que
-    # el dignatario la mueva a En_Proceso/Finalizada desde "Mis asignadas".
+    # El estado NO se toca: queda "Nueva" (por atender) para el comité.
     db.commit()
     db.refresh(pqrs)
     return pqrs

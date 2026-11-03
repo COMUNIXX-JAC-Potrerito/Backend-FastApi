@@ -107,3 +107,16 @@ def resultados(db: Session, encuesta_id: int):
         "total_respuestas": total_respuestas,
         "preguntas": detalle,
     }
+
+
+def participantes(db: Session, encuesta_id: int):
+    """Lista quién respondió la encuesta (más recientes primero); None si no existe."""
+    encuesta = db.query(Encuesta).filter(Encuesta.id == encuesta_id).first()
+    if encuesta is None:
+        return None
+    return (
+        db.query(RespuestaEncuesta)
+        .filter(RespuestaEncuesta.encuesta_id == encuesta_id)
+        .order_by(RespuestaEncuesta.created_at.desc())
+        .all()
+    )

@@ -75,3 +75,16 @@ class EncuestaResultados(BaseModel):
     titulo: str
     total_respuestas: int
     preguntas: list[ResultadoPregunta]
+
+
+class ParticipanteResponse(BaseModel):
+    """Una persona que respondió la encuesta (para saber quién participó)."""
+    id: int
+    nombre: str | None = None
+    email: str | None = None
+    telefono: str | None = None
+    usuario_id: int | None = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
