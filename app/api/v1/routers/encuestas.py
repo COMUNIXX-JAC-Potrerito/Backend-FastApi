@@ -9,6 +9,7 @@ from app.schemas.encuesta import (
     EncuestaDetalle,
     EncuestaResultados,
     EncuestaResumen,
+    ParticipanteResponse,
     PublicarEncuesta,
     ResponderEncuesta,
 )
@@ -22,7 +23,7 @@ from app.services.encuestas.gestion import (
     opciones_a_lista,
     publicar_encuesta,
 )
-from app.services.encuestas.respuestas import responder_encuesta, resultados
+from app.services.encuestas.respuestas import participantes, responder_encuesta, resultados
 
 router = APIRouter()
 
@@ -175,3 +176,22 @@ def ver_resultados(
     if datos is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Encuesta no encontrada")
     return datos
+
+
+# ---------- Dignatarios: quién respondió ----------
+@router.get(
+    "/encuestas/{encuesta_id}/participantes",
+    response_model=list[ParticipanteResponse],
+)
+def ver_participantes(
+    encuesta_id: int,
+    db: Session = Depends(get_db),
+    usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
+):
+    """Lista las personas que respondieron la encuesta. Solo dignatarios."""
+    lista = participantes(db, encuesta_id)
+    if lista is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Encuesta no encontrada"
+        )
+    return lista
