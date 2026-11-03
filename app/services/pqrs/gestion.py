@@ -2,6 +2,8 @@ from sqlalchemy.orm import Session
 
 from app.services.pqrs.anonimato import ocultar_si_anonima
 from app.services.pqrs.catalogos import (
+    ESTADO_EN_PROCESO,
+    ESTADO_FINALIZADA,
     es_comite_valido,
     es_estado_valido,
 )
@@ -38,7 +40,11 @@ def listar_mias(db: Session, usuario_id: int):
 
 
 def responder_pqrs(db: Session, pqrs_id: int, respuesta: str):
-    """Guarda la respuesta de la JAC y su fecha; None si la PQRS no existe."""
+    """Guarda la respuesta de la JAC y su fecha; None si la PQRS no existe.
+
+    Al responder, la PQRS pasa a "En_Proceso" (salvo que ya esté "Finalizada",
+    que no se reabre): responder equivale a empezar a gestionarla.
+    """
     from datetime import datetime
 
     pqrs = obtener_por_id(db, pqrs_id)
@@ -46,6 +52,9 @@ def responder_pqrs(db: Session, pqrs_id: int, respuesta: str):
         return None
     pqrs.respuesta = respuesta
     pqrs.respuesta_fecha = datetime.utcnow()
+    # Responder avanza el estado a "En_Proceso" (no revive una ya finalizada).
+    if pqrs.estado != ESTADO_FINALIZADA:
+        pqrs.estado = ESTADO_EN_PROCESO
     db.commit()
     db.refresh(pqrs)
     return pqrs
