@@ -17,6 +17,19 @@ def responder_encuesta(
     if not encuesta.publicada:
         return None, "no_publicada"
 
+    # Un usuario registrado solo puede responder una vez cada encuesta.
+    if usuario_id is not None:
+        ya = (
+            db.query(RespuestaEncuesta)
+            .filter(
+                RespuestaEncuesta.encuesta_id == encuesta_id,
+                RespuestaEncuesta.usuario_id == usuario_id,
+            )
+            .first()
+        )
+        if ya is not None:
+            return None, "ya_respondio"
+
     # Datos personales obligatorios: nombre + (correo o teléfono)
     if not (nombre and nombre.strip()):
         return None, "datos_incompletos"
@@ -107,6 +120,17 @@ def resultados(db: Session, encuesta_id: int):
         "total_respuestas": total_respuestas,
         "preguntas": detalle,
     }
+
+
+def encuestas_respondidas_por(db: Session, usuario_id: int) -> list[int]:
+    """IDs de las encuestas que el usuario ya respondió (para no ofrecerlas de nuevo)."""
+    filas = (
+        db.query(RespuestaEncuesta.encuesta_id)
+        .filter(RespuestaEncuesta.usuario_id == usuario_id)
+        .distinct()
+        .all()
+    )
+    return [fila[0] for fila in filas]
 
 
 def participantes(db: Session, encuesta_id: int):
