@@ -1,5 +1,8 @@
+from datetime import datetime, timedelta
+
 from sqlalchemy.orm import Session
 
+from app.models.pqrs import RespuestaPQRS
 from app.services.pqrs.anonimato import ocultar_si_anonima
 from app.services.pqrs.catalogos import (
     ESTADO_EN_PROCESO,
@@ -7,6 +10,9 @@ from app.services.pqrs.catalogos import (
     es_comite_valido,
     es_estado_valido,
 )
+
+# Tiempo máximo para editar una respuesta ya enviada.
+VENTANA_EDICION = timedelta(minutes=5)
 from app.services.pqrs.consultas import (
     obtener_asignadas,
     obtener_entrantes,
@@ -39,25 +45,41 @@ def listar_mias(db: Session, usuario_id: int):
     return obtener_mias(db, usuario_id)
 
 
-def responder_pqrs(db: Session, pqrs_id: int, respuesta: str):
-    """Guarda la respuesta de la JAC y su fecha; None si la PQRS no existe.
+def agregar_respuesta(db: Session, pqrs_id: int, texto: str, autor_id: int | None):
+    """Agrega una respuesta de la JAC a la PQRS (permite varias por PQRS).
 
     Al responder, la PQRS pasa a "En_Proceso" (salvo que ya esté "Finalizada",
-    que no se reabre): responder equivale a empezar a gestionarla.
+    que no se reabre). Devuelve la PQRS; None si no existe.
     """
-    from datetime import datetime
-
     pqrs = obtener_por_id(db, pqrs_id)
     if pqrs is None:
         return None
-    pqrs.respuesta = respuesta
-    pqrs.respuesta_fecha = datetime.utcnow()
+    db.add(RespuestaPQRS(pqrs_id=pqrs_id, texto=texto, autor_id=autor_id))
     # Responder avanza el estado a "En_Proceso" (no revive una ya finalizada).
     if pqrs.estado != ESTADO_FINALIZADA:
         pqrs.estado = ESTADO_EN_PROCESO
     db.commit()
     db.refresh(pqrs)
     return pqrs
+
+
+def editar_respuesta(db: Session, respuesta_id: int, texto: str):
+    """Edita el texto de una respuesta dentro de los 5 min de creada.
+
+    Devuelve (pqrs, error): error="no_existe" o "fuera_de_tiempo"; None sin error.
+    """
+    respuesta = (
+        db.query(RespuestaPQRS).filter(RespuestaPQRS.id == respuesta_id).first()
+    )
+    if respuesta is None:
+        return None, "no_existe"
+    if datetime.utcnow() - respuesta.created_at > VENTANA_EDICION:
+        return None, "fuera_de_tiempo"
+    respuesta.texto = texto
+    db.commit()
+    pqrs = obtener_por_id(db, respuesta.pqrs_id)
+    db.refresh(pqrs)
+    return pqrs, None
 
 
 def asignar_comite(db: Session, pqrs_id: int, comite: str):
