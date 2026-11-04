@@ -15,13 +15,14 @@ from app.schemas.pqrs import (
 from app.services.auth.roles import ROLES_GESTION
 from app.services.pqrs.anonimato import ocultar_si_anonima
 from app.services.pqrs.gestion import (
+    agregar_respuesta,
     asignar_comite,
     cambiar_estado,
+    editar_respuesta,
     listar_asignadas,
     listar_entrantes,
     listar_historial,
     listar_mias,
-    responder_pqrs,
 )
 from app.services.pqrs.radicacion import crear_pqrs
 from app.services.pqrs.seguimiento import consultar_por_codigo
@@ -130,11 +131,32 @@ def responder(
     db: Session = Depends(get_db),
     usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
 ):
-    """Guarda la respuesta de la JAC a una PQRS y la pasa a En_Proceso. Solo dignatarios."""
-    pqrs = responder_pqrs(db, pqrs_id, data.respuesta)
+    """Agrega una respuesta de la JAC a una PQRS (permite varias) y la pasa a En_Proceso."""
+    pqrs = agregar_respuesta(db, pqrs_id, data.respuesta, usuario.id)
     if pqrs is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="No existe la PQRS indicada"
+        )
+    return ocultar_si_anonima(pqrs)
+
+
+@router.put("/pqrs/respuestas/{respuesta_id}", response_model=PQRSResponse)
+def editar_una_respuesta(
+    respuesta_id: int,
+    data: ResponderPQRS,
+    db: Session = Depends(get_db),
+    usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
+):
+    """Edita una respuesta de la JAC dentro de los 5 min de enviada. Solo dignatarios."""
+    pqrs, error = editar_respuesta(db, respuesta_id, data.respuesta)
+    if error == "no_existe":
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="No existe la respuesta indicada"
+        )
+    if error == "fuera_de_tiempo":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Ya no se puede editar esta respuesta (pasaron más de 5 minutos)",
         )
     return ocultar_si_anonima(pqrs)
 

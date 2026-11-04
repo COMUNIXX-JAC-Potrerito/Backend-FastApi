@@ -3,6 +3,18 @@ from datetime import datetime
 from pydantic import BaseModel
 
 
+class RespuestaResponse(BaseModel):
+    # Una respuesta de la JAC dentro del hilo de una PQRS
+    id: int
+    texto: str
+    autor_id: int | None = None
+    created_at: datetime
+    updated_at: datetime | None = None
+
+    class Config:
+        from_attributes = True
+
+
 class PQRSResponse(BaseModel):
     id: int
     codigo_seguimiento: str
@@ -19,8 +31,9 @@ class PQRSResponse(BaseModel):
     telefono_contacto: str | None = None
     created_at: datetime  # fecha y hora de radicación
     updated_at: datetime | None = None  # fecha y hora de la última actualización
-    respuesta: str | None = None
+    respuesta: str | None = None  # legado (respuesta única); usar "respuestas"
     respuesta_fecha: datetime | None = None
+    respuestas: list[RespuestaResponse] = []  # hilo de respuestas de la JAC
     # Adjunto opcional (multimedia/archivo)
     adjunto_url: str | None = None
     adjunto_tipo: str | None = None
@@ -66,7 +79,8 @@ class PQRSSeguimiento(BaseModel):
     comite: str | None = None
     created_at: datetime
     updated_at: datetime | None = None
-    respuesta: str | None = None  # respuesta de la JAC, visible al ciudadano
+    respuesta: str | None = None  # legado; usar "respuestas"
+    respuestas: list[RespuestaResponse] = []  # hilo de respuestas de la JAC, visible al ciudadano
     # El radicador puede ver su propio adjunto al hacer seguimiento
     adjunto_url: str | None = None
     adjunto_tipo: str | None = None
