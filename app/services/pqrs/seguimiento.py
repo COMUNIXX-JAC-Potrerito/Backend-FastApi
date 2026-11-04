@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 
+from app.services.pqrs.anonimato import respuestas_de
 from app.services.pqrs.consultas import obtener_por_codigo
 
 
@@ -21,6 +22,7 @@ def consultar_por_codigo(db: Session, codigo: str):
         "updated_at": pqrs.updated_at,
         # La respuesta de la JAC y el adjunto NO revelan identidad: se muestran.
         "respuesta": pqrs.respuesta,
+        "respuestas": respuestas_de(pqrs),
         "adjunto_url": pqrs.adjunto_url,
         "adjunto_tipo": pqrs.adjunto_tipo,
         "adjunto_nombre": pqrs.adjunto_nombre,

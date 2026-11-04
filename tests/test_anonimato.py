@@ -23,6 +23,7 @@ class _PQRSFake:
         self.created_at = datetime.utcnow()
         self.respuesta = None
         self.respuesta_fecha = None
+        self.respuestas = []
         self.adjunto_url = None
         self.adjunto_tipo = None
         self.adjunto_nombre = None

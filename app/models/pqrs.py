@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy.orm import relationship
 
 from app.db.session import Base
 
@@ -31,8 +32,9 @@ class PQRS(Base):
     telefono_contacto = Column(String, nullable=True)
 
     comite = Column(String, nullable=True)  # se asigna después (PUT /pqrs/{id}/asignar)
-    respuesta = Column(String, nullable=True)  # respuesta del dignatario (visible al ciudadano)
-    respuesta_fecha = Column(DateTime, nullable=True)  # cuándo se respondió (ventana de edición)
+    # Campos legados de respuesta única (reemplazados por la tabla respuestas_pqrs).
+    respuesta = Column(String, nullable=True)
+    respuesta_fecha = Column(DateTime, nullable=True)
 
     # Adjunto opcional (multimedia/archivo) subido a Cloudinary al radicar.
     adjunto_url = Column(String, nullable=True)
@@ -41,3 +43,27 @@ class PQRS(Base):
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Respuestas de la JAC (varias por PQRS), de la más antigua a la más nueva.
+    respuestas = relationship(
+        "RespuestaPQRS",
+        back_populates="pqrs",
+        order_by="RespuestaPQRS.created_at",
+        cascade="all, delete-orphan",
+    )
+
+
+class RespuestaPQRS(Base):
+    """Una respuesta de la JAC a una PQRS. Una PQRS puede tener varias."""
+
+    __tablename__ = "respuestas_pqrs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    pqrs_id = Column(Integer, ForeignKey("pqrs.id"), nullable=False, index=True)
+    autor_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # dignatario que responde
+    texto = Column(String, nullable=False)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    pqrs = relationship("PQRS", back_populates="respuestas")
