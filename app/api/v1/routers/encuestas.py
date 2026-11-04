@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user_optional, requiere_roles
+from app.api.deps import get_current_user, get_current_user_optional, requiere_roles
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.encuesta import (
@@ -23,7 +23,12 @@ from app.services.encuestas.gestion import (
     opciones_a_lista,
     publicar_encuesta,
 )
-from app.services.encuestas.respuestas import participantes, responder_encuesta, resultados
+from app.services.encuestas.respuestas import (
+    encuestas_respondidas_por,
+    participantes,
+    responder_encuesta,
+    resultados,
+)
 
 router = APIRouter()
 
@@ -65,6 +70,16 @@ def listar_gestion(
 ):
     """Lista TODAS las encuestas, incluye borradores. Solo dignatarios."""
     return listar_encuestas(db, solo_publicadas=False)
+
+
+# ---------- Usuario: qué encuestas ya respondió (para no repetir) ----------
+@router.get("/encuestas/mis-respuestas", response_model=list[int])
+def mis_respuestas(
+    db: Session = Depends(get_db),
+    usuario: User = Depends(get_current_user),
+):
+    """IDs de las encuestas que el usuario autenticado ya respondió."""
+    return encuestas_respondidas_por(db, usuario.id)
 
 
 @router.get("/encuestas/{encuesta_id}", response_model=EncuestaDetalle)
@@ -155,6 +170,10 @@ def responder(
     if error == "no_publicada":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="La encuesta no está publicada"
+        )
+    if error == "ya_respondio":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="Ya respondiste esta encuesta"
         )
     if error == "datos_incompletos":
         raise HTTPException(
