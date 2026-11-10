@@ -2,27 +2,26 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
+from app.schemas.comunes import AdjuntoEntrada, AdjuntoSalida, DesdeORM, TextoLargo, Titulo
 
-class MensajeCreate(BaseModel):
+
+class MensajeCreate(AdjuntoEntrada):
     destinatario_id: int
-    # En el chat tipo WhatsApp no hay "asunto"; se deja un valor por defecto.
-    asunto: str = "Chat"
-    # El contenido puede ir vacío si el mensaje es solo un adjunto (foto, audio...).
-    contenido: str = ""
-    adjunto_url: str | None = None
-    adjunto_tipo: str | None = None
-    adjunto_nombre: str | None = None
+    # En el chat no hay "asunto"; se deja un valor por defecto.
+    asunto: Titulo = "Chat"
+    # Puede ir vacío si el mensaje es solo un adjunto (foto, audio...).
+    contenido: TextoLargo = ""
 
 
 class EditarMensaje(BaseModel):
-    contenido: str
+    contenido: TextoLargo
 
 
 class FijarMensaje(BaseModel):
     fijado: bool
 
 
-class MensajeResponse(BaseModel):
+class MensajeResponse(AdjuntoSalida, DesdeORM):
     id: int
     remitente_id: int
     destinatario_id: int
@@ -32,9 +31,3 @@ class MensajeResponse(BaseModel):
     fijado: bool = False
     editado: bool = False
     created_at: datetime
-    adjunto_url: str | None = None
-    adjunto_tipo: str | None = None
-    adjunto_nombre: str | None = None
-
-    class Config:
-        from_attributes = True

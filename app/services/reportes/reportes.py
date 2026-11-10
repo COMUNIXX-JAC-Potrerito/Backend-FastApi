@@ -1,3 +1,6 @@
+"""Indicadores para el panel de información general."""
+
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.comunicacion import Comunicacion
@@ -7,49 +10,69 @@ from app.models.publicacion import Publicacion
 from app.models.user import User
 from app.services.pqrs.catalogos import (
     COMITES_VALIDOS,
+    ESTADO_EN_ESPERA,
     ESTADO_EN_PROCESO,
     ESTADO_FINALIZADA,
+    ESTADO_NUEVA,
 )
 
 
+def _pqrs_por_estado(db: Session) -> dict[str, int]:
+    return dict(db.query(PQRS.estado, func.count()).group_by(PQRS.estado).all())
+
+
+def _comunicaciones_por_tipo(db: Session) -> dict[str, int]:
+    return dict(db.query(Comunicacion.tipo, func.count()).group_by(Comunicacion.tipo).all())
+
+
 def resumen(db: Session) -> dict:
-    """Estadísticas generales de la gestión de la JAC."""
+    """Conteos generales de la gestión de la JAC."""
+    por_estado = _pqrs_por_estado(db)
+    por_tipo = _comunicaciones_por_tipo(db)
     return {
         "usuarios": db.query(User).count(),
-        "pqrs_total": db.query(PQRS).count(),
-        "pqrs_nuevas": db.query(PQRS).filter(PQRS.estado == "Nueva").count(),
-        "pqrs_en_proceso": db.query(PQRS).filter(PQRS.estado == "En_Proceso").count(),
-        "pqrs_finalizadas": db.query(PQRS).filter(PQRS.estado == "Finalizada").count(),
+        "pqrs_total": sum(por_estado.values()),
+        "pqrs_nuevas": por_estado.get(ESTADO_NUEVA, 0),
+        "pqrs_en_proceso": por_estado.get(ESTADO_EN_PROCESO, 0),
+        "pqrs_en_espera": por_estado.get(ESTADO_EN_ESPERA, 0),
+        "pqrs_finalizadas": por_estado.get(ESTADO_FINALIZADA, 0),
         "publicaciones": db.query(Publicacion).count(),
-        "comunicaciones_enviadas": db.query(Comunicacion).filter(Comunicacion.tipo == "enviada").count(),
-        "comunicaciones_recibidas": db.query(Comunicacion).filter(Comunicacion.tipo == "recibida").count(),
+        "comunicaciones_enviadas": por_tipo.get("enviada", 0),
+        "comunicaciones_recibidas": por_tipo.get("recibida", 0),
         "mensajes_internos": db.query(Mensaje).count(),
     }
 
 
 def carga_por_comite(db: Session) -> list[dict]:
-    """Trabajo de cada comité: total, en proceso, finalizadas y pendientes.
+    """Total, en proceso, finalizadas y pendientes por comité (una sola consulta).
 
-    Sirve para ver de un vistazo el flujo y la carga de cada comité en el
-    panel de información general.
+    Solo aparecen los comités con al menos una PQRS; primero los de más pendientes.
     """
-    filas = []
-    for comite in COMITES_VALIDOS:
-        base = db.query(PQRS).filter(PQRS.comite == comite)
-        total = base.count()
-        if total == 0:
-            continue  # no mostramos comités sin ninguna PQRS
-        en_proceso = base.filter(PQRS.estado == ESTADO_EN_PROCESO).count()
-        finalizadas = base.filter(PQRS.estado == ESTADO_FINALIZADA).count()
-        filas.append(
+    filas = (
+        db.query(PQRS.comite, PQRS.estado, func.count())
+        .filter(PQRS.comite.in_(COMITES_VALIDOS))
+        .group_by(PQRS.comite, PQRS.estado)
+        .all()
+    )
+    conteos: dict[str, dict[str, int]] = {}
+    for comite, estado, cantidad in filas:
+        conteos.setdefault(comite, {})[estado] = cantidad
+
+    carga = []
+    for comite in COMITES_VALIDOS:  # orden estable del catálogo para empates
+        if comite not in conteos:
+            continue
+        por_estado = conteos[comite]
+        total = sum(por_estado.values())
+        finalizadas = por_estado.get(ESTADO_FINALIZADA, 0)
+        carga.append(
             {
                 "comite": comite,
                 "total": total,
-                "en_proceso": en_proceso,
+                "en_proceso": por_estado.get(ESTADO_EN_PROCESO, 0),
                 "finalizadas": finalizadas,
                 "pendientes": total - finalizadas,
             }
         )
-    # Los de mayor carga pendiente primero
-    filas.sort(key=lambda f: f["pendientes"], reverse=True)
-    return filas
+    carga.sort(key=lambda fila: fila["pendientes"], reverse=True)
+    return carga

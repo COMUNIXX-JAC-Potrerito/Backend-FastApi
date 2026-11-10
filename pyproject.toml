@@ -2,8 +2,8 @@
 package = false
 [project]
 name = "comunixx"
-version = "0.1.0"
-description = "Add your description here"
+version = "1.1.0"
+description = "Backend de COMUNIX: gestión de PQRS, publicaciones y encuestas de la JAC de la Vereda Potrerito"
 readme = "README.md"
 authors = [
     { name = "Juan Camilo Montes", email = "jm3876602@gmail.com" }
@@ -36,3 +36,42 @@ dev = [
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+addopts = "-p no:cacheprovider"
+filterwarnings = [
+    "error",
+    # Aviso interno de Starlette sobre su TestClient; no afecta al código del proyecto.
+    "ignore:Using `httpx` with `starlette.testclient` is deprecated:DeprecationWarning",
+    "ignore::starlette.exceptions.StarletteDeprecationWarning",
+]
+
+[tool.ruff]
+line-length = 110
+target-version = "py314"
+
+[tool.ruff.lint]
+select = [
+    "E", "W", "F",  # pycodestyle y pyflakes
+    "I",            # orden de imports
+    "B",            # bugs probables (bugbear)
+    "S",            # seguridad (bandit)
+    "UP",           # sintaxis moderna de Python
+    "SIM",          # simplificaciones
+    "RET",          # retornos
+    "C90",          # complejidad ciclomática
+    "N",            # nombres
+    "PL",           # pylint
+]
+ignore = [
+    "B008",     # Depends()/File() como valor por defecto es el patrón de FastAPI
+    "PLR2004",  # números en comparaciones de tests
+    "N818",     # las excepciones usan nombres en español (ErrorDominio, NoEncontrado...)
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.pylint]
+max-args = 6
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106", "PLR0913", "E402"]

@@ -1,4 +1,4 @@
-# Imagen del backend FastAPI para desplegar en Koyeb (o cualquier plataforma con Docker).
+# Imagen del backend FastAPI (se despliega en Render; sirve en cualquier plataforma con Docker).
 FROM python:3.14-slim
 
 ENV PYTHONUNBUFFERED=1 \
@@ -17,7 +17,11 @@ RUN uv sync --no-dev --no-install-project
 # Luego el código de la aplicación.
 COPY app ./app
 
+# La aplicación no necesita privilegios de administrador dentro del contenedor.
+RUN useradd --system --no-create-home --uid 10001 comunix
+USER comunix
+
 EXPOSE 8000
 
-# Koyeb inyecta el puerto en la variable PORT; si no existe, usa 8000.
+# Render inyecta el puerto en la variable PORT; si no existe, usa 8000.
 CMD ["sh", "-c", ".venv/bin/uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
