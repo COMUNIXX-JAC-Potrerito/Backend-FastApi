@@ -45,7 +45,7 @@ def test_encuesta_con_pregunta_de_opciones_incompleta_no_se_crea(client, admin):
     assert client.get("/api/encuestas/gestion", headers=cabecera_de(admin)).json() == []
 
 
-def test_usuario_registrado_no_responde_dos_veces_aunque_omita_el_token(client, encuesta, ciudadano):
+def test_usuario_registrado_no_responde_dos_veces_aunque_omita_el_token(client, encuesta, ciudadano, admin):
     url = f"/api/encuestas/{encuesta['id']}/responder"
     con_sesion = client.post(url, json={"items": _items(encuesta)}, headers=cabecera_de(ciudadano))
     sin_token = client.post(
@@ -53,7 +53,10 @@ def test_usuario_registrado_no_responde_dos_veces_aunque_omita_el_token(client, 
         json={"items": _items(encuesta), "nombre": "Otro", "email": ciudadano.email.upper()},
     )
     assert con_sesion.status_code == 201
-    assert sin_token.status_code == 409
+    # 403 (y no 409) para no revelar si la cuenta ya había respondido.
+    assert sin_token.status_code == 403
+    participantes = client.get(f"/api/encuestas/{encuesta['id']}/participantes", headers=cabecera_de(admin))
+    assert len(participantes.json()) == 1
 
 
 def test_con_sesion_se_usan_los_datos_de_la_cuenta(client, encuesta, ciudadano, admin):

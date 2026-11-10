@@ -16,14 +16,19 @@ from app.schemas.comunes import (
 )
 
 
-class RespuestaResponse(DesdeORM):
-    """Una respuesta de la JAC dentro del hilo de una PQRS."""
+class RespuestaPublica(DesdeORM):
+    """Una respuesta de la JAC tal como la ve el público (sin quién la escribió)."""
 
     id: int
     texto: str
-    autor_id: int | None = None
     created_at: datetime
     updated_at: datetime | None = None
+
+
+class RespuestaResponse(RespuestaPublica):
+    """Una respuesta de la JAC dentro del hilo de una PQRS."""
+
+    autor_id: int | None = None
 
 
 class PQRSResponse(AdjuntoSalida, DesdeORM):
@@ -81,4 +86,4 @@ class PQRSSeguimiento(AdjuntoSalida, DesdeORM):
     created_at: datetime
     updated_at: datetime | None = None
     respuesta: str | None = None  # versión anterior; usar "respuestas"
-    respuestas: list[RespuestaResponse] = []
+    respuestas: list[RespuestaPublica] = []

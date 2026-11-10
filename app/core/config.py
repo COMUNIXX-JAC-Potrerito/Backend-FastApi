@@ -24,6 +24,14 @@ class Settings(BaseSettings):
     # en Vercel (URL oficial y URLs de cada deploy), no cualquier app de Vercel.
     cors_origin_regex: str | None = r"https://frontend-angular-comunixx(-[a-z0-9-]+)?\.vercel\.app"
 
+    # Proxies delante de la app. En Render son 2: Cloudflare (anota la IP del
+    # cliente) y el balanceador de Render (anota la de Cloudflare), así que
+    # X-Forwarded-For llega como "<cliente>, <borde de Cloudflare>". La IP real es
+    # la entrada en esa posición contando desde el final; lo anterior lo puede
+    # escribir el cliente. Un valor menor tomaría la IP de Cloudflare, compartida
+    # por muchos usuarios (y los límites los bloquearían a todos). 0 = sin proxy.
+    proxies_confiables: int = Field(default=2, ge=0, le=10)
+
     # SMTP para el envío masivo (opcional). Sin host/usuario, el envío es "simulado".
     smtp_host: str | None = None
     smtp_port: int = 587

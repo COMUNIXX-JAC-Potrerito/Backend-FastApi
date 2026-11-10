@@ -6,7 +6,8 @@ ENV PYTHONUNBUFFERED=1 \
     UV_FROZEN=1
 
 # uv gestiona las dependencias (igual que en local).
-RUN pip install --no-cache-dir uv
+# Versión fija: la misma imagen se construye igual hoy y dentro de un año.
+RUN pip install --no-cache-dir uv==0.12.5
 
 WORKDIR /app
 
