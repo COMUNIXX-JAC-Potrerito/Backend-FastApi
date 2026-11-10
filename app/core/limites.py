@@ -13,6 +13,8 @@ from collections.abc import Callable
 from fastapi import HTTPException, Request, status
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
+from app.core.config import settings
+
 _registrados: list[Limitador] = []
 
 
@@ -59,16 +61,21 @@ class Limitador:
 
 
 def ip_cliente(request: Request) -> str:
-    """IP del cliente. Detrás del proxy de Render llega en X-Forwarded-For.
+    """IP real del cliente, aunque falsee la cabecera X-Forwarded-For.
 
-    Se toma la primera dirección de la cabecera. Un atacante podría falsearla, así
-    que este límite frena el abuso casual; el límite por cuenta en el login no
-    depende de la IP.
+    Cada proxy agrega al final la IP de quien le habló. Con `proxies_confiables`
+    proxies propios, la IP real es la entrada en esa posición contando desde el
+    final; lo que haya antes lo pudo escribir el cliente y se ignora.
     """
+    directa = request.client.host if request.client else "desconocida"
+    saltos = settings.proxies_confiables
     reenviada = request.headers.get("x-forwarded-for")
-    if reenviada:
-        return reenviada.split(",")[0].strip()
-    return request.client.host if request.client else "desconocida"
+    if saltos == 0 or not reenviada:
+        return directa
+    cadena = [ip.strip() for ip in reenviada.split(",") if ip.strip()]
+    if not cadena:
+        return directa
+    return cadena[-saltos] if len(cadena) >= saltos else cadena[0]
 
 
 def limite_por_ip(maximo: int, ventana_segundos: float):
@@ -102,8 +109,11 @@ limite_radicar_pqrs = limite_por_ip(maximo=20, ventana_segundos=3600)
 limite_seguimiento = limite_por_ip(maximo=60, ventana_segundos=60)
 limite_responder_encuesta = limite_por_ip(maximo=30, ventana_segundos=3600)
 limite_subidas = limite_por_ip(maximo=30, ventana_segundos=3600)
-# Intentos de login por cuenta, independiente de la IP (frena la fuerza bruta).
-limite_login_por_cuenta = limitador_registrado(maximo=10, ventana_segundos=900)
+# Intentos de login por cuenta desde una misma IP (frena la fuerza bruta sin que
+# un atacante pueda bloquear al dueño de la cuenta, que entra desde otra IP).
+limite_login_por_cuenta_e_ip = limitador_registrado(maximo=10, ventana_segundos=900)
+# Tope global por cuenta, más alto, contra ataques repartidos entre muchas IP.
+limite_login_por_cuenta = limitador_registrado(maximo=50, ventana_segundos=900)
 
 
 class CuerpoDemasiadoGrande(HTTPException):

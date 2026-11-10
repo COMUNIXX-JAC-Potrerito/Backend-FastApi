@@ -7,10 +7,11 @@ from dataclasses import dataclass
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
-from app.core.errores import Conflicto, DatosInvalidos
+from app.core.errores import Conflicto, DatosInvalidos, SinPermiso
 from app.models.encuesta import Pregunta, RespuestaEncuesta, RespuestaItem
 from app.models.user import User
 from app.schemas.encuesta import ResponderEncuesta, RespuestaItemCreate
+from app.services.auth.gestion import buscar_por_email
 from app.services.auth.validaciones import normalizar_email
 from app.services.encuestas.gestion import TIPO_OPCIONES, obtener_encuesta
 
@@ -89,6 +90,10 @@ def responder_encuesta(
     encuesta = obtener_encuesta(db, encuesta_id)
     if not encuesta.publicada:
         raise DatosInvalidos("La encuesta no está publicada")
+    # Va antes de la verificación de duplicados: así un 409 no delata si esa cuenta ya respondió.
+    if participante.usuario_id is None and participante.email and buscar_por_email(db, participante.email):
+        # Evita responder en nombre de otra persona (y bloquearle su propia respuesta).
+        raise SinPermiso("Ese correo pertenece a una cuenta registrada: inicia sesión para responder")
     if _ya_respondio(db, encuesta_id, participante):
         raise Conflicto("Ya respondiste esta encuesta")
     if not participante.nombre or not (participante.email or participante.telefono):
