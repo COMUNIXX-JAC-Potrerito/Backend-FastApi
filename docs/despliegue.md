@@ -46,7 +46,7 @@ El repo `Backend-FastApi` ya tiene un **Dockerfile** y un **`render.yaml`** (Blu
    - `https://<tu-backend>.onrender.com/health` → `{"status":"ok"}`
    - `https://<tu-backend>.onrender.com/docs` → la documentación de la API.
 
-> Las tablas se crean solas al arrancar (create_all), contra la base de Neon.
+> Al arrancar, la app aplica sola las migraciones pendientes (Alembic) contra la base de Neon. Ver `docs/migraciones.md`.
 
 ### Que no se duerma (pinger)
 

@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app import models  # noqa: F401  (registra todas las tablas en Base.metadata)
+from app import models  # noqa: F401  (registra todos los modelos antes de usarlos)
 from app.api.v1.routers import (
     auth,
     comunicaciones,
@@ -24,7 +24,7 @@ from app.core.config import settings
 from app.core.errores import registrar_manejadores
 from app.core.limites import LimiteTamanoCuerpo
 from app.core.logs import configurar_logs
-from app.db.session import Base, engine
+from app.db.migrar import migrar
 
 # Tamaño máximo de cualquier petición: el adjunto (10 MB) más el resto del formulario.
 MAX_BYTES_PETICION = 12 * 1024 * 1024
@@ -45,8 +45,8 @@ ROUTERS = (
 
 @asynccontextmanager
 async def ciclo_de_vida(_: FastAPI) -> AsyncIterator[None]:
-    # create_all solo crea tablas nuevas; NO modifica las existentes (eso requiere migraciones).
-    Base.metadata.create_all(bind=engine)
+    # Aplica las migraciones pendientes (crea o modifica tablas). Ver docs/migraciones.md.
+    migrar(settings.database_url)
     yield
 
 
