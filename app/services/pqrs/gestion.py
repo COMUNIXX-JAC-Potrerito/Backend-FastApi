@@ -1,18 +1,20 @@
-from datetime import datetime, timedelta
+"""Gestión de PQRS por parte de los dignatarios."""
+
+from datetime import timedelta
 
 from sqlalchemy.orm import Session
 
-from app.models.pqrs import RespuestaPQRS
+from app.core.errores import DatosInvalidos, NoEncontrado, SinPermiso
+from app.core.tiempo import ahora_utc
+from app.models.pqrs import PQRS, RespuestaPQRS
 from app.services.pqrs.anonimato import ocultar_si_anonima
 from app.services.pqrs.catalogos import (
     ESTADO_EN_PROCESO,
     ESTADO_FINALIZADA,
+    ESTADOS_VALIDOS,
     es_comite_valido,
     es_estado_valido,
 )
-
-# Tiempo máximo para editar una respuesta ya enviada.
-VENTANA_EDICION = timedelta(minutes=5)
 from app.services.pqrs.consultas import (
     obtener_asignadas,
     obtener_entrantes,
@@ -21,99 +23,70 @@ from app.services.pqrs.consultas import (
     obtener_todas,
 )
 
-
-def listar_entrantes(db: Session):
-    """Lista las PQRS entrantes aplicando el anonimato (oculta identidad)."""
-    pqrs_entrantes = obtener_entrantes(db)
-    return [ocultar_si_anonima(pqrs) for pqrs in pqrs_entrantes]
+# Tiempo máximo para editar una respuesta ya enviada.
+VENTANA_EDICION = timedelta(minutes=5)
 
 
-def listar_historial(db: Session):
-    """Lista todas las PQRS (historial) aplicando el anonimato."""
-    todas = obtener_todas(db)
-    return [ocultar_si_anonima(pqrs) for pqrs in todas]
+def listar_entrantes(db: Session) -> list[dict]:
+    return [ocultar_si_anonima(pqrs) for pqrs in obtener_entrantes(db)]
 
 
-def listar_asignadas(db: Session, comite: str):
-    """Lista las PQRS de un comité aplicando el anonimato."""
-    asignadas = obtener_asignadas(db, comite)
-    return [ocultar_si_anonima(pqrs) for pqrs in asignadas]
+def listar_historial(db: Session) -> list[dict]:
+    return [ocultar_si_anonima(pqrs) for pqrs in obtener_todas(db)]
 
 
-def listar_mias(db: Session, usuario_id: int):
-    """Lista las PQRS del propio usuario (completas, sin ocultar; son suyas)."""
+def listar_asignadas(db: Session, comite: str | None) -> list[dict]:
+    """PQRS de la comisión del dignatario (vacío si no tiene comisión)."""
+    if not comite:
+        return []
+    return [ocultar_si_anonima(pqrs) for pqrs in obtener_asignadas(db, comite)]
+
+
+def listar_mias(db: Session, usuario_id: int) -> list[PQRS]:
+    """PQRS del propio usuario, completas (son suyas)."""
     return obtener_mias(db, usuario_id)
 
 
-def agregar_respuesta(db: Session, pqrs_id: int, texto: str, autor_id: int | None):
-    """Agrega una respuesta de la JAC a la PQRS (permite varias por PQRS).
+def _guardar(db: Session, pqrs: PQRS) -> dict:
+    db.commit()
+    db.refresh(pqrs)
+    return ocultar_si_anonima(pqrs)
 
-    Al responder, la PQRS pasa a "En_Proceso" (salvo que ya esté "Finalizada",
-    que no se reabre). Devuelve la PQRS; None si no existe.
-    """
+
+def agregar_respuesta(db: Session, pqrs_id: int, texto: str, autor_id: int) -> dict:
+    """Agrega una respuesta al hilo y pasa la PQRS a En_Proceso (no reabre finalizadas)."""
     pqrs = obtener_por_id(db, pqrs_id)
-    if pqrs is None:
-        return None
-    db.add(RespuestaPQRS(pqrs_id=pqrs_id, texto=texto, autor_id=autor_id))
-    # Responder avanza el estado a "En_Proceso" (no revive una ya finalizada).
+    pqrs.respuestas.append(RespuestaPQRS(texto=texto, autor_id=autor_id))
     if pqrs.estado != ESTADO_FINALIZADA:
         pqrs.estado = ESTADO_EN_PROCESO
-    db.commit()
-    db.refresh(pqrs)
-    return pqrs
+    return _guardar(db, pqrs)
 
 
-def editar_respuesta(db: Session, respuesta_id: int, texto: str):
-    """Edita el texto de una respuesta dentro de los 5 min de creada.
-
-    Devuelve (pqrs, error): error="no_existe" o "fuera_de_tiempo"; None sin error.
-    """
-    respuesta = (
-        db.query(RespuestaPQRS).filter(RespuestaPQRS.id == respuesta_id).first()
-    )
+def editar_respuesta(db: Session, respuesta_id: int, texto: str, autor_id: int) -> dict:
+    """Edita una respuesta propia dentro de los 5 minutos siguientes a su envío."""
+    respuesta = db.get(RespuestaPQRS, respuesta_id)
     if respuesta is None:
-        return None, "no_existe"
-    if datetime.utcnow() - respuesta.created_at > VENTANA_EDICION:
-        return None, "fuera_de_tiempo"
+        raise NoEncontrado("No existe la respuesta indicada")
+    if respuesta.autor_id != autor_id:
+        raise SinPermiso("Solo el autor puede editar esta respuesta")
+    if ahora_utc() - respuesta.created_at > VENTANA_EDICION:
+        raise DatosInvalidos("Ya no se puede editar esta respuesta (pasaron más de 5 minutos)")
     respuesta.texto = texto
-    db.commit()
-    pqrs = obtener_por_id(db, respuesta.pqrs_id)
-    db.refresh(pqrs)
-    return pqrs, None
+    return _guardar(db, respuesta.pqrs)
 
 
-def asignar_comite(db: Session, pqrs_id: int, comite: str):
-    """Asigna un comité a la PQRS. NO cambia el estado: sigue "Nueva" para el comité.
-
-    Se separa la asignación (responsable) del estado (ciclo de vida), como en
-    las mesas de ayuda. Al asignar, la PQRS sale de "Entrantes" (ya tiene
-    comité) y aparece en "Mis asignadas / Nuevas" del comité, que luego la
-    mueve a En_Proceso y Finalizada.
-    """
+def asignar_comite(db: Session, pqrs_id: int, comite: str) -> dict:
+    """Asigna el comité responsable. El estado no cambia: sigue "Nueva" para el comité."""
     if not es_comite_valido(comite):
-        raise ValueError("El comité/cargo indicado no es válido")
-
+        raise DatosInvalidos("El comité/cargo indicado no es válido")
     pqrs = obtener_por_id(db, pqrs_id)
-    if pqrs is None:
-        return None
-
     pqrs.comite = comite
-    # El estado NO se toca: queda "Nueva" (por atender) para el comité.
-    db.commit()
-    db.refresh(pqrs)
-    return pqrs
+    return _guardar(db, pqrs)
 
 
-def cambiar_estado(db: Session, pqrs_id: int, estado: str):
-    """Cambia el estado de la PQRS (valida que sea Nueva/En_Proceso/Finalizada)."""
+def cambiar_estado(db: Session, pqrs_id: int, estado: str) -> dict:
     if not es_estado_valido(estado):
-        raise ValueError("El estado indicado no es válido (Nueva, En_Proceso o Finalizada)")
-
+        raise DatosInvalidos(f"El estado indicado no es válido ({', '.join(ESTADOS_VALIDOS)})")
     pqrs = obtener_por_id(db, pqrs_id)
-    if pqrs is None:
-        return None
-
     pqrs.estado = estado
-    db.commit()
-    db.refresh(pqrs)
-    return pqrs
+    return _guardar(db, pqrs)

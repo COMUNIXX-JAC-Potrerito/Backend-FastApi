@@ -10,30 +10,26 @@ Uso:
 import sys
 
 from app.db.session import SessionLocal
-from app.models.user import User
+from app.services.auth.gestion import buscar_por_email
 from app.services.auth.roles import ROL_SUPERADMIN
 
 
-def main() -> None:
-    """Lee el correo de los argumentos y promueve ese usuario a superadministrador."""
-    if len(sys.argv) < 2:
+def main() -> int:
+    if len(sys.argv) != 2:
         print("Uso: uv run python crear_superadmin.py <correo>")
-        return
+        return 2
 
     email = sys.argv[1]
-    db = SessionLocal()
-    try:
-        usuario = db.query(User).filter(User.email == email).first()
+    with SessionLocal() as db:
+        usuario = buscar_por_email(db, email)
         if usuario is None:
             print(f"No existe un usuario con el correo '{email}'. Regístralo primero.")
-            return
-
+            return 1
         usuario.role = ROL_SUPERADMIN
         db.commit()
-        print(f"Listo: '{email}' ahora es {ROL_SUPERADMIN}.")
-    finally:
-        db.close()
+    print(f"Listo: '{email}' ahora es {ROL_SUPERADMIN}.")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

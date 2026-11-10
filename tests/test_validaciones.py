@@ -1,33 +1,37 @@
-from app.services.auth.validaciones import is_password_strong, is_valid_email
+from app.services.auth.validaciones import is_password_strong, is_valid_email, normalizar_email
 
 
 def test_password_too_short():
-    assert is_password_strong("Abc1") == False
+    assert not is_password_strong("Abc1")
 
 
 def test_password_sin_mayuscula():
-    assert is_password_strong("abcdefg1") == False
+    assert not is_password_strong("abcdefg1")
 
 
 def test_password_sin_numero():
-    assert is_password_strong("Abcdefgh") == False
+    assert not is_password_strong("Abcdefgh")
 
 
 def test_password_valida():
-    assert is_password_strong("Abcdefg1") == True
+    assert is_password_strong("Abcdefg1")
 
 
 def test_email_valido():
-    assert is_valid_email("juanca@test.com") == True
+    assert is_valid_email("juanca@test.com")
 
 
 def test_email_sin_arroba():
-    assert is_valid_email("juanca.test.com") == False
+    assert not is_valid_email("juanca.test.com")
 
 
 def test_email_sin_dominio():
-    assert is_valid_email("juanca@") == False
+    assert not is_valid_email("juanca@")
 
 
 def test_email_con_espacio():
-    assert is_valid_email("juan ca@test.com") == False
+    assert not is_valid_email("juan ca@test.com")
+
+
+def test_normalizar_email_recorta_y_pasa_a_minusculas():
+    assert normalizar_email("  Ana.Gomez@Test.COM ") == "ana.gomez@test.com"

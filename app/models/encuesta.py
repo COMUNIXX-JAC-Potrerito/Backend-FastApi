@@ -1,7 +1,7 @@
-from datetime import datetime
-
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy.orm import relationship
 
+from app.core.tiempo import ahora_utc
 from app.db.session import Base
 
 
@@ -14,7 +14,9 @@ class Encuesta(Base):
     tipo = Column(String, nullable=False, default="encuesta")  # encuesta | censo
     publicada = Column(Boolean, default=False)
     created_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=ahora_utc)
+
+    preguntas = relationship("Pregunta", order_by="Pregunta.orden", cascade="all, delete-orphan")
 
 
 class Pregunta(Base):
@@ -24,8 +26,7 @@ class Pregunta(Base):
     encuesta_id = Column(Integer, ForeignKey("encuestas.id"), nullable=False)
     texto = Column(String, nullable=False)
     tipo = Column(String, nullable=False, default="texto")  # texto | opciones
-    # Para tipo "opciones": lista de opciones guardada como JSON (texto).
-    opciones = Column(String, nullable=True)
+    opciones = Column(String, nullable=True)  # lista JSON, solo para tipo "opciones"
     orden = Column(Integer, default=0)
 
 
@@ -35,11 +36,11 @@ class RespuestaEncuesta(Base):
     id = Column(Integer, primary_key=True, index=True)
     encuesta_id = Column(Integer, ForeignKey("encuestas.id"), nullable=False)
     usuario_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    # Datos personales de quien responde (obligatorios para identificar la participación)
+    # Datos de quien responde (identifican la participación).
     nombre = Column(String, nullable=True)
     email = Column(String, nullable=True)
     telefono = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=ahora_utc)
 
 
 class RespuestaItem(Base):

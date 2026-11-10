@@ -1,12 +1,14 @@
 from pydantic import BaseModel
 
+from app.schemas.comunes import TextoExtenso, Titulo
+
 
 class EnvioCreate(BaseModel):
-    asunto: str
-    contenido: str
+    asunto: Titulo
+    contenido: TextoExtenso
 
 
 class EnvioResultado(BaseModel):
     envio_id: int
     destinatarios: int
-    modo: str  # simulado, real, error
+    modo: str  # simulado | real | parcial | error

@@ -1,80 +1,37 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+"""Mensajería interna entre dignatarios."""
+
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
-from app.api.deps import requiere_roles
+from app.api.deps import solo_dignatarios
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.mensaje import (
-    EditarMensaje,
-    FijarMensaje,
-    MensajeCreate,
-    MensajeResponse,
-)
-from app.services.auth.roles import ROLES_GESTION
-from app.services.mensajes.gestion import (
-    editar_mensaje,
-    eliminar_mensaje,
-    enviados,
-    enviar_mensaje,
-    fijar_mensaje,
-    marcar_leido,
-    recibidos,
-)
+from app.schemas.mensaje import EditarMensaje, FijarMensaje, MensajeCreate, MensajeResponse
+from app.services.mensajes import gestion
 
-router = APIRouter()
+router = APIRouter(tags=["mensajes"])
 
 
 @router.post("/mensajes", response_model=MensajeResponse, status_code=status.HTTP_201_CREATED)
-def enviar(
-    data: MensajeCreate,
-    db: Session = Depends(get_db),
-    usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
-):
-    """Envía un mensaje interno a otro dignatario (con adjunto opcional)."""
-    try:
-        return enviar_mensaje(
-            db,
-            usuario.id,
-            data.destinatario_id,
-            data.asunto,
-            data.contenido,
-            adjunto_url=data.adjunto_url,
-            adjunto_tipo=data.adjunto_tipo,
-            adjunto_nombre=data.adjunto_nombre,
-        )
-    except ValueError as error:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
+def enviar(data: MensajeCreate, db: Session = Depends(get_db), usuario: User = Depends(solo_dignatarios)):
+    """Envía un mensaje a otro dignatario (con adjunto opcional)."""
+    return gestion.enviar_mensaje(db, usuario.id, data)
 
 
 @router.get("/mensajes/recibidos", response_model=list[MensajeResponse])
-def bandeja_entrada(
-    db: Session = Depends(get_db),
-    usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
-):
-    """Devuelve los mensajes recibidos por el dignatario logueado."""
-    return recibidos(db, usuario.id)
+def bandeja_entrada(db: Session = Depends(get_db), usuario: User = Depends(solo_dignatarios)):
+    return gestion.recibidos(db, usuario.id)
 
 
 @router.get("/mensajes/enviados", response_model=list[MensajeResponse])
-def bandeja_enviados(
-    db: Session = Depends(get_db),
-    usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
-):
-    """Devuelve los mensajes que envió el dignatario logueado."""
-    return enviados(db, usuario.id)
+def bandeja_enviados(db: Session = Depends(get_db), usuario: User = Depends(solo_dignatarios)):
+    return gestion.enviados(db, usuario.id)
 
 
 @router.put("/mensajes/{mensaje_id}/leido", response_model=MensajeResponse)
-def leer(
-    mensaje_id: int,
-    db: Session = Depends(get_db),
-    usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
-):
-    """Marca un mensaje recibido como leído (404 si no es tuyo o no existe)."""
-    mensaje = marcar_leido(db, mensaje_id, usuario.id)
-    if mensaje is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Mensaje no encontrado")
-    return mensaje
+def leer(mensaje_id: int, db: Session = Depends(get_db), usuario: User = Depends(solo_dignatarios)):
+    """Marca como leído un mensaje recibido."""
+    return gestion.marcar_leido(db, mensaje_id, usuario.id)
 
 
 @router.put("/mensajes/{mensaje_id}", response_model=MensajeResponse)
@@ -82,20 +39,10 @@ def editar(
     mensaje_id: int,
     data: EditarMensaje,
     db: Session = Depends(get_db),
-    usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
+    usuario: User = Depends(solo_dignatarios),
 ):
-    """Edita el contenido de un mensaje propio (solo el autor, dentro de los 15 min)."""
-    mensaje, error = editar_mensaje(db, mensaje_id, usuario.id, data.contenido)
-    if error == "no_existe":
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Mensaje no encontrado")
-    if error == "no_autorizado":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo el autor puede editar")
-    if error == "fuera_de_tiempo":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Ya pasaron los 15 minutos para editar",
-        )
-    return mensaje
+    """Edita un mensaje propio dentro de los 15 minutos siguientes."""
+    return gestion.editar_mensaje(db, mensaje_id, usuario.id, data.contenido)
 
 
 @router.put("/mensajes/{mensaje_id}/fijar", response_model=MensajeResponse)
@@ -103,21 +50,13 @@ def fijar(
     mensaje_id: int,
     data: FijarMensaje,
     db: Session = Depends(get_db),
-    usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
+    usuario: User = Depends(solo_dignatarios),
 ):
-    """Fija o desfija un mensaje de la conversación (cualquiera de los dos participantes)."""
-    mensaje = fijar_mensaje(db, mensaje_id, usuario.id, data.fijado)
-    if mensaje is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Mensaje no encontrado")
-    return mensaje
+    """Fija o desfija un mensaje de la conversación."""
+    return gestion.fijar_mensaje(db, mensaje_id, usuario.id, data.fijado)
 
 
 @router.delete("/mensajes/{mensaje_id}", status_code=status.HTTP_204_NO_CONTENT)
-def eliminar(
-    mensaje_id: int,
-    db: Session = Depends(get_db),
-    usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
-):
-    """Elimina un mensaje (cualquiera de los dos participantes puede borrarlo)."""
-    if not eliminar_mensaje(db, mensaje_id, usuario.id):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Mensaje no encontrado")
+def eliminar(mensaje_id: int, db: Session = Depends(get_db), usuario: User = Depends(solo_dignatarios)):
+    """Elimina un mensaje en el que el usuario participa."""
+    gestion.eliminar_mensaje(db, mensaje_id, usuario.id)

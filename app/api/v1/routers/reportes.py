@@ -1,28 +1,22 @@
+"""Indicadores del panel de información general (solo dignatarios)."""
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.api.deps import requiere_roles
+from app.api.deps import solo_dignatarios
 from app.db.session import get_db
-from app.models.user import User
-from app.services.auth.roles import ROLES_GESTION
 from app.services.reportes.reportes import carga_por_comite, resumen
 
-router = APIRouter()
+router = APIRouter(tags=["reportes"], dependencies=[Depends(solo_dignatarios)])
 
 
 @router.get("/reportes/resumen")
-def reporte_resumen(
-    db: Session = Depends(get_db),
-    usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
-):
-    """Devuelve el resumen con los conteos del sistema (usuarios, PQRS, publicaciones, etc.)."""
+def reporte_resumen(db: Session = Depends(get_db)):
+    """Conteos generales: usuarios, PQRS por estado, publicaciones, etc."""
     return resumen(db)
 
 
 @router.get("/reportes/carga-comites")
-def reporte_carga_comites(
-    db: Session = Depends(get_db),
-    usuario: User = Depends(requiere_roles(*ROLES_GESTION)),
-):
-    """Trabajo pendiente de cada comité (para ver el flujo y la carga)."""
+def reporte_carga_comites(db: Session = Depends(get_db)):
+    """Trabajo pendiente de cada comité."""
     return carga_por_comite(db)
