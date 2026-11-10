@@ -11,6 +11,19 @@ permissions:
 jobs:
   calidad:
     runs-on: ubuntu-latest
+    # PostgreSQL real (como Neon) para probar las migraciones con el motor de producción.
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: comunix
+          POSTGRES_PASSWORD: comunix
+          POSTGRES_DB: migraciones
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U comunix" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_POSTGRES_URL: postgresql://comunix:comunix@localhost:5432/migraciones
     steps:
       - uses: actions/checkout@v4
 

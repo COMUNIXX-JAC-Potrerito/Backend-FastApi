@@ -5,6 +5,7 @@ from collections import Counter
 from dataclasses import dataclass
 
 from sqlalchemy import func, or_
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.errores import Conflicto, DatosInvalidos, SinPermiso
@@ -14,6 +15,8 @@ from app.schemas.encuesta import ResponderEncuesta, RespuestaItemCreate
 from app.services.auth.gestion import buscar_por_email
 from app.services.auth.validaciones import normalizar_email
 from app.services.encuestas.gestion import TIPO_OPCIONES, obtener_encuesta
+
+MENSAJE_YA_RESPONDIO = "Ya respondiste esta encuesta"
 
 
 @dataclass(frozen=True)
@@ -95,7 +98,7 @@ def responder_encuesta(
         # Evita responder en nombre de otra persona (y bloquearle su propia respuesta).
         raise SinPermiso("Ese correo pertenece a una cuenta registrada: inicia sesión para responder")
     if _ya_respondio(db, encuesta_id, participante):
-        raise Conflicto("Ya respondiste esta encuesta")
+        raise Conflicto(MENSAJE_YA_RESPONDIO)
     if not participante.nombre or not (participante.email or participante.telefono):
         raise DatosInvalidos("Indica tu nombre y un correo o teléfono para responder")
     _validar_items(encuesta.preguntas, items)
@@ -108,11 +111,16 @@ def responder_encuesta(
         telefono=participante.telefono,
     )
     db.add(respuesta)
-    db.flush()
-    db.add_all(
-        RespuestaItem(respuesta_id=respuesta.id, pregunta_id=i.pregunta_id, valor=i.valor) for i in items
-    )
-    db.commit()
+    try:
+        db.flush()  # aquí el índice único frena un segundo envío simultáneo
+        db.add_all(
+            RespuestaItem(respuesta_id=respuesta.id, pregunta_id=i.pregunta_id, valor=i.valor) for i in items
+        )
+        db.commit()
+    except IntegrityError as error:
+        # Dos envíos simultáneos de la misma cuenta: el índice único frena el segundo.
+        db.rollback()
+        raise Conflicto(MENSAJE_YA_RESPONDIO) from error
     db.refresh(respuesta)
     return respuesta
 

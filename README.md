@@ -28,7 +28,7 @@ Documento de contexto para que cualquier IA (o persona) retome el trabajo sin pe
 - **Usuarios (solo superadmin):** página en el panel para ver usuarios y cambiar su **rol** y su **comisión** (`GET /api/usuarios`, `PUT /api/usuarios/{id}/rol`, `PUT /api/usuarios/{id}/comite`).
 - **Comisión + respuestas (item 8):** `users.comite` define a qué comisión pertenece un dignatario. `GET /api/pqrs/asignadas` lista las PQRS de su comisión; `PUT /api/pqrs/{id}/responder` guarda la respuesta. La respuesta es **visible al ciudadano** en el seguimiento por código. Página frontend: **"Mis asignadas"**.
 - **Publicaciones:** ahora aceptan **multimedia** (adjunto Cloudinary) y las fechas están etiquetadas (actividad vs publicación). Comunicaciones: textos aclarados (bitácora vs envío masivo).
-- **Migraciones aplicadas en Neon** (create_all no altera tablas existentes): `adjunto_*` en mensajes/pqrs/publicaciones, `comite` en users, `respuesta`/`respuesta_fecha` en pqrs. Scripts en scratchpad (no versionados). Para cambios futuros de columnas, usar `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`.
+- **Migraciones aplicadas en Neon** (create_all no altera tablas existentes): `adjunto_*` en mensajes/pqrs/publicaciones, `comite` en users, `respuesta`/`respuesta_fecha` en pqrs. Scripts en scratchpad (no versionados). **Desde la v1.3 los cambios de esquema van con migraciones de Alembic: ver `docs/migraciones.md`.**
 
 ### 🗳️ ÉPICA 5 — ENCUESTAS/CENSOS + NOTIFICACIONES (en curso 2026-09-18)
 
