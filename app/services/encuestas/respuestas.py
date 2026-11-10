@@ -5,6 +5,7 @@ from collections import Counter
 from dataclasses import dataclass
 
 from sqlalchemy import func, or_
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.errores import Conflicto, DatosInvalidos, SinPermiso
@@ -14,6 +15,24 @@ from app.schemas.encuesta import ResponderEncuesta, RespuestaItemCreate
 from app.services.auth.gestion import buscar_por_email
 from app.services.auth.validaciones import normalizar_email
 from app.services.encuestas.gestion import TIPO_OPCIONES, obtener_encuesta
+
+MENSAJE_YA_RESPONDIO = "Ya respondiste esta encuesta"
+# Índice único (encuesta_id, usuario_id): ver migraciones/versions/0002_*.
+INDICE_RESPUESTA_UNICA = "uq_respuestas_encuesta_encuesta_usuario"
+
+
+def es_respuesta_repetida(error: IntegrityError) -> bool:
+    """True solo si el error es el índice de una respuesta por cuenta.
+
+    PostgreSQL informa el nombre de la restricción; SQLite solo las columnas.
+    """
+    diagnostico = getattr(error.orig, "diag", None)
+    if diagnostico is not None and getattr(diagnostico, "constraint_name", None):
+        return diagnostico.constraint_name == INDICE_RESPUESTA_UNICA
+    mensaje = str(error.orig)
+    return INDICE_RESPUESTA_UNICA in mensaje or (
+        "UNIQUE" in mensaje and "respuestas_encuesta.usuario_id" in mensaje
+    )
 
 
 @dataclass(frozen=True)
@@ -95,7 +114,7 @@ def responder_encuesta(
         # Evita responder en nombre de otra persona (y bloquearle su propia respuesta).
         raise SinPermiso("Ese correo pertenece a una cuenta registrada: inicia sesión para responder")
     if _ya_respondio(db, encuesta_id, participante):
-        raise Conflicto("Ya respondiste esta encuesta")
+        raise Conflicto(MENSAJE_YA_RESPONDIO)
     if not participante.nombre or not (participante.email or participante.telefono):
         raise DatosInvalidos("Indica tu nombre y un correo o teléfono para responder")
     _validar_items(encuesta.preguntas, items)
@@ -108,11 +127,19 @@ def responder_encuesta(
         telefono=participante.telefono,
     )
     db.add(respuesta)
-    db.flush()
-    db.add_all(
-        RespuestaItem(respuesta_id=respuesta.id, pregunta_id=i.pregunta_id, valor=i.valor) for i in items
-    )
-    db.commit()
+    try:
+        db.flush()  # aquí el índice único frena un segundo envío simultáneo
+        db.add_all(
+            RespuestaItem(respuesta_id=respuesta.id, pregunta_id=i.pregunta_id, valor=i.valor) for i in items
+        )
+        db.commit()
+    except IntegrityError as error:
+        db.rollback()
+        # Dos envíos simultáneos de la misma cuenta: el índice único frena el segundo.
+        # Cualquier otro error sigue al manejador global (que lo registra en el log).
+        if participante.usuario_id is not None and es_respuesta_repetida(error):
+            raise Conflicto(MENSAJE_YA_RESPONDIO) from error
+        raise
     db.refresh(respuesta)
     return respuesta
 

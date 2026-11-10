@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy.exc import IntegrityError
 
+from app.core.config import settings
 from app.core.errores import NoEncontrado, registrar_manejadores
 from app.main import app
 
@@ -45,6 +46,9 @@ def test_cuerpo_enviado_por_fragmentos_tambien_se_limita(client):
     assert respuesta.status_code == 413
 
 
-def test_la_app_arranca_y_crea_las_tablas():
+def test_la_app_aplica_las_migraciones_al_arrancar(monkeypatch):
+    aplicadas = []
+    monkeypatch.setattr("app.main.migrar", aplicadas.append)
     with TestClient(app) as cliente:
         assert cliente.get("/health").status_code == 200
+    assert aplicadas == [settings.database_url]

@@ -10,6 +10,7 @@ authors = [
 ]
 requires-python = ">=3.14"
 dependencies = [
+    "alembic>=1.16",
     "bcrypt>=4.2",
     "cloudinary>=1.46.2",
     "fastapi>=0.141.1",
