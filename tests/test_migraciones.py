@@ -14,7 +14,7 @@ from alembic.script import ScriptDirectory
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.exc import IntegrityError
 
-from app.db.migrar import REVISION_BASE, config_alembic, migrar
+from app.db.migrar import REVISION_BASE, EsquemaIncompleto, config_alembic, migrar
 from app.db.session import Base
 from app.services.encuestas import respuestas
 from tests.conftest import cabecera_de
@@ -25,11 +25,11 @@ def url_bd(tmp_path):
     url = os.environ.get("TEST_POSTGRES_URL")
     if not url:
         return f"sqlite:///{(tmp_path / 'migraciones.db').as_posix()}"
-    motor_bd = create_engine(url)
-    with motor_bd.begin() as conexion:  # base vacía para cada test
+    limpieza = create_engine(url)
+    with limpieza.begin() as conexion:  # base vacía para cada test
         conexion.execute(text("DROP SCHEMA public CASCADE"))
         conexion.execute(text("CREATE SCHEMA public"))
-    motor_bd.dispose()
+    limpieza.dispose()
     return url
 
 
@@ -155,3 +155,40 @@ def test_respuesta_simultanea_de_la_misma_cuenta_responde_409(client, ciudadano,
 
     assert segunda.status_code == 409
     assert segunda.json()["detail"] == "Ya respondiste esta encuesta"
+
+
+# ---------- Bases sin registro de Alembic que NO tienen el esquema base completo ----------
+def test_esquema_parcial_sin_registro_detiene_el_arranque(url_bd, motor_bd):
+    with motor_bd.begin() as conexion:
+        conexion.execute(text("CREATE TABLE users (id INTEGER PRIMARY KEY, email VARCHAR NOT NULL)"))
+
+    with pytest.raises(EsquemaIncompleto, match="encuestas"):
+        migrar(url_bd)
+
+
+def test_tabla_sin_una_columna_detiene_el_arranque(url_bd, motor_bd):
+    _como_neon_hoy(url_bd, motor_bd)
+    with motor_bd.begin() as conexion:
+        conexion.execute(text("ALTER TABLE users DROP COLUMN comite"))
+
+    with pytest.raises(EsquemaIncompleto, match=r"users\.comite"):
+        migrar(url_bd)
+
+
+def test_registro_vacio_con_esquema_completo_se_marca(url_bd, motor_bd):
+    command.upgrade(config_alembic(url_bd), REVISION_BASE)
+    with motor_bd.begin() as conexion:
+        conexion.execute(text("DELETE FROM alembic_version"))
+
+    migrar(url_bd)
+    assert _version(motor_bd) == _head(url_bd)
+
+
+# ---------- Solo el índice de respuestas se traduce a "Ya respondiste" ----------
+def test_otros_errores_de_integridad_no_se_confunden_con_respuesta_repetida(db, crear_usuario):
+    crear_usuario(email="repetido@test.com")
+    with pytest.raises(IntegrityError) as error:
+        crear_usuario(email="repetido@test.com")
+    db.rollback()
+
+    assert not respuestas.es_respuesta_repetida(error.value)
