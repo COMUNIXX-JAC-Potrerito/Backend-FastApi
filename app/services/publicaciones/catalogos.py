@@ -1,8 +1,8 @@
 """Categorías válidas de una publicación."""
 
-CATEGORIA_DECISION = "decision"     # HU11: decisiones tomadas en reuniones
-CATEGORIA_ACTIVIDAD = "actividad"   # HU12: actividades comunitarias
-CATEGORIA_CONTENIDO = "contenido"   # HU13: contenidos institucionales
+CATEGORIA_DECISION = "decision"  # HU11: decisiones tomadas en reuniones
+CATEGORIA_ACTIVIDAD = "actividad"  # HU12: actividades comunitarias
+CATEGORIA_CONTENIDO = "contenido"  # HU13: contenidos institucionales
 
 CATEGORIAS_VALIDAS = [CATEGORIA_DECISION, CATEGORIA_ACTIVIDAD, CATEGORIA_CONTENIDO]
 

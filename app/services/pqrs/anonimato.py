@@ -1,10 +1,18 @@
-def respuestas_de(pqrs) -> list:
-    """Devuelve el hilo de respuestas de la JAC como lista de dicts.
+"""Serialización de PQRS aplicando la regla de anonimato."""
 
-    Usa la tabla respuestas_pqrs; si está vacía pero existe la respuesta
-    legada (columna única antigua), la incluye para no perder respuestas viejas.
+# Nombre genérico para el archivo de una PQRS anónima: el nombre original
+# (p. ej. "Queja de Pedro Pérez.pdf") puede revelar quién la radicó.
+NOMBRE_ADJUNTO_ANONIMO = "Adjunto"
+
+_CAMPOS_IDENTIDAD = ("radicado_por_id", "nombre_contacto", "email_contacto", "telefono_contacto")
+
+
+def respuestas_de(pqrs) -> list[dict]:
+    """Hilo de respuestas de la JAC.
+
+    Si la PQRS solo tiene la respuesta única de la versión anterior (columna
+    `respuesta`), se incluye como primera respuesta para no perderla.
     """
-    filas = getattr(pqrs, "respuestas", []) or []
     hilo = [
         {
             "id": r.id,
@@ -13,27 +21,31 @@ def respuestas_de(pqrs) -> list:
             "created_at": r.created_at,
             "updated_at": r.updated_at,
         }
-        for r in filas
+        for r in pqrs.respuestas
     ]
-    legado = getattr(pqrs, "respuesta", None)
-    if not hilo and legado:
+    if not hilo and pqrs.respuesta:
         hilo.append(
             {
-                "id": 0,  # respuesta legada: no editable
-                "texto": legado,
+                "id": 0,  # respuesta de la versión anterior: no editable
+                "texto": pqrs.respuesta,
                 "autor_id": None,
-                "created_at": getattr(pqrs, "respuesta_fecha", None)
-                or getattr(pqrs, "created_at", None),
+                "created_at": pqrs.respuesta_fecha or pqrs.created_at,
                 "updated_at": None,
             }
         )
     return hilo
 
 
+def nombre_adjunto_visible(pqrs) -> str | None:
+    if pqrs.es_anonima and pqrs.adjunto_nombre:
+        return NOMBRE_ADJUNTO_ANONIMO
+    return pqrs.adjunto_nombre
+
+
 def ocultar_si_anonima(pqrs) -> dict:
-    """Convierte una PQRS en un dict para responder.
-    Si es anónima, oculta (pone en None) los datos que revelan la identidad.
-    El codigo_seguimiento NO se oculta: no revela quién es y sirve para consultar el estado.
+    """Convierte una PQRS en dict; si es anónima, oculta lo que revela la identidad.
+
+    El código de seguimiento y el adjunto se conservan: no identifican a nadie.
     """
     datos = {
         "id": pqrs.id,
@@ -52,17 +64,11 @@ def ocultar_si_anonima(pqrs) -> dict:
         "email_contacto": pqrs.email_contacto,
         "telefono_contacto": pqrs.telefono_contacto,
         "created_at": pqrs.created_at,
-        # El adjunto es parte del contenido de la PQRS, NO revela identidad:
-        # se conserva aunque sea anónima.
+        "updated_at": pqrs.updated_at,
         "adjunto_url": pqrs.adjunto_url,
         "adjunto_tipo": pqrs.adjunto_tipo,
-        "adjunto_nombre": pqrs.adjunto_nombre,
+        "adjunto_nombre": nombre_adjunto_visible(pqrs),
     }
-
     if pqrs.es_anonima:
-        datos["radicado_por_id"] = None
-        datos["nombre_contacto"] = None
-        datos["email_contacto"] = None
-        datos["telefono_contacto"] = None
-
+        datos.update(dict.fromkeys(_CAMPOS_IDENTIDAD))
     return datos

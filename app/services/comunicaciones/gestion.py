@@ -1,36 +1,25 @@
-from datetime import datetime
+"""Bitácora de comunicaciones externas (enviadas a / recibidas de otras entidades)."""
 
 from sqlalchemy.orm import Session
 
+from app.core.errores import DatosInvalidos, NoEncontrado
+from app.core.tiempo import ahora_utc
 from app.models.comunicacion import Comunicacion
+from app.schemas.comunicacion import ComunicacionCreate
 
-TIPOS_VALIDOS = ["enviada", "recibida"]
+TIPOS_VALIDOS = ("enviada", "recibida")
 
 
 def es_tipo_valido(tipo: str) -> bool:
-    """Indica si el tipo de comunicación es válido ('enviada' o 'recibida')."""
     return tipo in TIPOS_VALIDOS
 
 
-def registrar(
-    db: Session,
-    tipo: str,
-    entidad: str,
-    asunto: str,
-    descripcion: str | None,
-    fecha: datetime | None,
-    registrado_por_id: int | None,
-):
-    """Crea y guarda una comunicación externa en la bitácora (valida el tipo)."""
-    if not es_tipo_valido(tipo):
-        raise ValueError("El tipo debe ser 'enviada' o 'recibida'")
-
+def registrar(db: Session, datos: ComunicacionCreate, registrado_por_id: int) -> Comunicacion:
+    if not es_tipo_valido(datos.tipo):
+        raise DatosInvalidos("El tipo debe ser 'enviada' o 'recibida'")
     comunicacion = Comunicacion(
-        tipo=tipo,
-        entidad=entidad,
-        asunto=asunto,
-        descripcion=descripcion,
-        fecha=fecha or datetime.utcnow(),
+        **datos.model_dump(exclude={"fecha"}),
+        fecha=datos.fecha or ahora_utc(),
         registrado_por_id=registrado_por_id,
     )
     db.add(comunicacion)
@@ -39,19 +28,17 @@ def registrar(
     return comunicacion
 
 
-def listar(db: Session, tipo: str | None = None):
-    """Devuelve las comunicaciones (filtradas por tipo si se indica), más recientes primero."""
+def listar(db: Session, tipo: str | None = None) -> list[Comunicacion]:
+    """Comunicaciones (filtradas por tipo si se indica), más recientes primero."""
     query = db.query(Comunicacion)
     if tipo:
         query = query.filter(Comunicacion.tipo == tipo)
-    return query.order_by(Comunicacion.fecha.desc()).all()
+    return query.order_by(Comunicacion.fecha.desc(), Comunicacion.id.desc()).all()
 
 
-def eliminar(db: Session, comunicacion_id: int) -> bool:
-    """Borra una comunicación por id; devuelve True si existía y False si no."""
-    comunicacion = db.query(Comunicacion).filter(Comunicacion.id == comunicacion_id).first()
+def eliminar(db: Session, comunicacion_id: int) -> None:
+    comunicacion = db.get(Comunicacion, comunicacion_id)
     if comunicacion is None:
-        return False
+        raise NoEncontrado("Comunicación no encontrada")
     db.delete(comunicacion)
     db.commit()
-    return True

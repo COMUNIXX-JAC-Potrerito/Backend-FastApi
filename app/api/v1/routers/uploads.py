@@ -1,61 +1,29 @@
-from fastapi import APIRouter, File, HTTPException, UploadFile, status
+"""Subida de adjuntos a Cloudinary.
 
+Es pública porque las PQRS anónimas también pueden llevar adjunto; por eso tiene
+límite de frecuencia, de tamaño y verificación del tipo real del archivo.
+"""
+
+from fastapi import APIRouter, Depends, File, UploadFile, status
+
+from app.core.limites import limite_subidas
 from app.schemas.upload import AdjuntoResponse
-from app.services.uploads.almacenamiento import subir_archivo
+from app.services.uploads import almacenamiento
 
-router = APIRouter()
-
-# Límite de tamaño por archivo (10 MB) y tipos permitidos.
-MAX_BYTES = 10 * 1024 * 1024
-PREFIJOS_PERMITIDOS = ("image/", "video/", "audio/")
-TIPOS_EXTRA = {
-    "application/pdf",
-    "application/msword",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "application/vnd.ms-excel",
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    "text/plain",
-}
+router = APIRouter(tags=["uploads"])
 
 
-def _tipo_permitido(content_type: str | None) -> bool:
-    """Indica si el tipo de archivo está permitido (imagen/video/audio o documento)."""
-    if content_type is None:
-        return False
-    if content_type.startswith(PREFIJOS_PERMITIDOS):
-        return True
-    return content_type in TIPOS_EXTRA
-
-
-@router.post("/uploads", response_model=AdjuntoResponse, status_code=status.HTTP_201_CREATED)
-async def subir(archivo: UploadFile = File(...)):
-    """Sube un archivo (imagen, video, audio o documento) a Cloudinary y
-    devuelve su URL pública. Se usa tanto en mensajería como al radicar PQRS."""
-    if not _tipo_permitido(archivo.content_type):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Tipo de archivo no permitido (solo imágenes, video, audio o documentos).",
-        )
-
-    contenido = await archivo.read()
-    if len(contenido) > MAX_BYTES:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="El archivo supera el límite de 10 MB.",
-        )
-    if len(contenido) == 0:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="El archivo está vacío.",
-        )
-
-    try:
-        return subir_archivo(contenido, archivo.filename or "archivo")
-    except ValueError as error:
-        # Cloudinary no configurado
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(error))
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="No se pudo subir el archivo. Intenta de nuevo.",
-        )
+# `def` (no `async def`): FastAPI lo ejecuta en un hilo aparte, así la lectura del
+# archivo y la llamada a Cloudinary no bloquean al resto de peticiones.
+@router.post(
+    "/uploads",
+    response_model=AdjuntoResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(limite_subidas)],
+)
+def subir(archivo: UploadFile = File(...)):
+    """Sube una imagen, video, audio o documento y devuelve su URL pública."""
+    almacenamiento.validar_tipo_declarado(archivo.content_type)
+    contenido = almacenamiento.leer_con_limite(archivo.file)
+    almacenamiento.validar_contenido(archivo.content_type, contenido)
+    return almacenamiento.subir_archivo(contenido, almacenamiento.nombre_seguro(archivo.filename))

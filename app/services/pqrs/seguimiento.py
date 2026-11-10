@@ -1,17 +1,17 @@
+"""Consulta pública del estado de una PQRS por su código de seguimiento."""
+
 from sqlalchemy.orm import Session
 
-from app.services.pqrs.anonimato import respuestas_de
+from app.core.errores import NoEncontrado
+from app.services.pqrs.anonimato import nombre_adjunto_visible, respuestas_de
 from app.services.pqrs.consultas import obtener_por_codigo
 
 
-def consultar_por_codigo(db: Session, codigo: str):
-    """Consulta pública del estado de una PQRS por su código de seguimiento.
-    Devuelve solo datos NO sensibles (nunca la identidad de quien la radicó),
-    para que incluso las anónimas puedan seguirse sin revelar quién es."""
+def consultar_por_codigo(db: Session, codigo: str) -> dict:
+    """Solo datos no sensibles: nunca la identidad de quien la radicó."""
     pqrs = obtener_por_codigo(db, codigo)
     if pqrs is None:
-        return None
-
+        raise NoEncontrado("No existe una PQRS con ese código de seguimiento")
     return {
         "codigo_seguimiento": pqrs.codigo_seguimiento,
         "tipo": pqrs.tipo,
@@ -20,10 +20,9 @@ def consultar_por_codigo(db: Session, codigo: str):
         "comite": pqrs.comite,
         "created_at": pqrs.created_at,
         "updated_at": pqrs.updated_at,
-        # La respuesta de la JAC y el adjunto NO revelan identidad: se muestran.
         "respuesta": pqrs.respuesta,
         "respuestas": respuestas_de(pqrs),
         "adjunto_url": pqrs.adjunto_url,
         "adjunto_tipo": pqrs.adjunto_tipo,
-        "adjunto_nombre": pqrs.adjunto_nombre,
+        "adjunto_nombre": nombre_adjunto_visible(pqrs),
     }

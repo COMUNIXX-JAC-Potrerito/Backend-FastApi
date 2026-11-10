@@ -2,120 +2,106 @@
 
 import json
 
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from sqlalchemy.orm import Session, selectinload
 
+from app.core.errores import DatosInvalidos, NoEncontrado
 from app.models.encuesta import Encuesta, Pregunta, RespuestaEncuesta, RespuestaItem
+from app.schemas.encuesta import EncuestaCreate, PreguntaCreate
 
-TIPOS_ENCUESTA = ["encuesta", "censo"]
-TIPOS_PREGUNTA = ["texto", "opciones"]
+TIPOS_ENCUESTA = ("encuesta", "censo")
+TIPO_TEXTO = "texto"
+TIPO_OPCIONES = "opciones"
+TIPOS_PREGUNTA = (TIPO_TEXTO, TIPO_OPCIONES)
+MIN_OPCIONES = 2
+MENSAJE_NO_EXISTE = "Encuesta no encontrada"
 
 
-def crear_encuesta(db: Session, titulo, descripcion, tipo, preguntas, created_by_id):
-    """Crea una encuesta/censo con sus preguntas (valida tipo y opciones)."""
-    if tipo not in TIPOS_ENCUESTA:
-        raise ValueError("El tipo debe ser 'encuesta' o 'censo'")
-    if not preguntas:
-        raise ValueError("Debe incluir al menos una pregunta")
+def _opciones_limpias(pregunta: PreguntaCreate) -> list[str]:
+    return [o.strip() for o in (pregunta.opciones or []) if o and o.strip()]
 
+
+def _validar(datos: EncuestaCreate) -> None:
+    """Valida todo antes de escribir, para no dejar encuestas a medias."""
+    if datos.tipo not in TIPOS_ENCUESTA:
+        raise DatosInvalidos("El tipo debe ser 'encuesta' o 'censo'")
+    if not datos.preguntas:
+        raise DatosInvalidos("Debe incluir al menos una pregunta")
+    for pregunta in datos.preguntas:
+        if pregunta.tipo not in TIPOS_PREGUNTA:
+            raise DatosInvalidos("El tipo de pregunta debe ser 'texto' u 'opciones'")
+        if pregunta.tipo == TIPO_OPCIONES and len(_opciones_limpias(pregunta)) < MIN_OPCIONES:
+            raise DatosInvalidos("Las preguntas de opción múltiple necesitan al menos 2 opciones")
+
+
+def _a_modelo(pregunta: PreguntaCreate, orden: int) -> Pregunta:
+    opciones = None
+    if pregunta.tipo == TIPO_OPCIONES:
+        opciones = json.dumps(_opciones_limpias(pregunta), ensure_ascii=False)
+    return Pregunta(texto=pregunta.texto, tipo=pregunta.tipo, opciones=opciones, orden=orden)
+
+
+def crear_encuesta(db: Session, datos: EncuestaCreate, creado_por_id: int) -> Encuesta:
+    _validar(datos)
     encuesta = Encuesta(
-        titulo=titulo,
-        descripcion=descripcion,
-        tipo=tipo,
-        created_by_id=created_by_id,
+        titulo=datos.titulo,
+        descripcion=datos.descripcion,
+        tipo=datos.tipo,
+        created_by_id=creado_por_id,
+        preguntas=[_a_modelo(p, orden) for orden, p in enumerate(datos.preguntas)],
     )
     db.add(encuesta)
-    db.flush()  # obtiene el id sin cerrar la transacción
-
-    for i, p in enumerate(preguntas):
-        if p.tipo not in TIPOS_PREGUNTA:
-            raise ValueError("El tipo de pregunta debe ser 'texto' u 'opciones'")
-        opciones_json = None
-        if p.tipo == "opciones":
-            limpias = [o.strip() for o in (p.opciones or []) if o and o.strip()]
-            if len(limpias) < 2:
-                raise ValueError("Las preguntas de opción múltiple necesitan al menos 2 opciones")
-            opciones_json = json.dumps(limpias, ensure_ascii=False)
-        db.add(
-            Pregunta(
-                encuesta_id=encuesta.id,
-                texto=p.texto,
-                tipo=p.tipo,
-                opciones=opciones_json,
-                orden=i,
-            )
-        )
-
     db.commit()
     db.refresh(encuesta)
     return encuesta
 
 
-def listar_encuestas(db: Session, solo_publicadas: bool):
-    """Lista encuestas (solo publicadas o todas), más recientes primero."""
+def listar_encuestas(db: Session, solo_publicadas: bool) -> list[Encuesta]:
+    """Encuestas (solo publicadas o todas), más recientes primero."""
     query = db.query(Encuesta)
     if solo_publicadas:
         query = query.filter(Encuesta.publicada.is_(True))
-    return query.order_by(Encuesta.created_at.desc()).all()
+    return query.order_by(Encuesta.created_at.desc(), Encuesta.id.desc()).all()
 
 
-def obtener_preguntas(db: Session, encuesta_id: int):
-    """Devuelve las preguntas de una encuesta en orden."""
-    return (
-        db.query(Pregunta)
-        .filter(Pregunta.encuesta_id == encuesta_id)
-        .order_by(Pregunta.orden)
-        .all()
+def obtener_encuesta(db: Session, encuesta_id: int) -> Encuesta:
+    """La encuesta con sus preguntas; lanza NoEncontrado si no existe."""
+    encuesta = (
+        db.query(Encuesta)
+        .options(selectinload(Encuesta.preguntas))
+        .filter(Encuesta.id == encuesta_id)
+        .first()
     )
-
-
-def obtener_encuesta(db: Session, encuesta_id: int):
-    """Busca una encuesta por su id; None si no existe."""
-    return db.query(Encuesta).filter(Encuesta.id == encuesta_id).first()
-
-
-def publicar_encuesta(db: Session, encuesta_id: int, publicada: bool):
-    """Publica o despublica una encuesta; None si no existe."""
-    encuesta = obtener_encuesta(db, encuesta_id)
     if encuesta is None:
-        return None
+        raise NoEncontrado(MENSAJE_NO_EXISTE)
+    return encuesta
+
+
+def obtener_visible(db: Session, encuesta_id: int, es_dignatario: bool) -> Encuesta:
+    """Las encuestas no publicadas solo las ven los dignatarios (para el resto, 404)."""
+    encuesta = obtener_encuesta(db, encuesta_id)
+    if not encuesta.publicada and not es_dignatario:
+        raise NoEncontrado(MENSAJE_NO_EXISTE)
+    return encuesta
+
+
+def publicar_encuesta(db: Session, encuesta_id: int, publicada: bool) -> Encuesta:
+    encuesta = obtener_encuesta(db, encuesta_id)
     encuesta.publicada = publicada
     db.commit()
     db.refresh(encuesta)
     return encuesta
 
 
-def eliminar_encuesta(db: Session, encuesta_id: int) -> bool:
-    """Borra una encuesta y todo lo suyo (respuestas, items y preguntas); True si existía."""
+def eliminar_encuesta(db: Session, encuesta_id: int) -> None:
+    """Borra la encuesta con sus preguntas, respuestas e ítems."""
     encuesta = obtener_encuesta(db, encuesta_id)
-    if encuesta is None:
-        return False
-
-    resp_ids = [
-        r.id
-        for r in db.query(RespuestaEncuesta)
-        .filter(RespuestaEncuesta.encuesta_id == encuesta_id)
-        .all()
-    ]
-    if resp_ids:
-        db.query(RespuestaItem).filter(RespuestaItem.respuesta_id.in_(resp_ids)).delete(
-            synchronize_session=False
-        )
+    respuestas = select(RespuestaEncuesta.id).where(RespuestaEncuesta.encuesta_id == encuesta_id)
+    db.query(RespuestaItem).filter(RespuestaItem.respuesta_id.in_(respuestas)).delete(
+        synchronize_session=False
+    )
     db.query(RespuestaEncuesta).filter(RespuestaEncuesta.encuesta_id == encuesta_id).delete(
         synchronize_session=False
     )
-    db.query(Pregunta).filter(Pregunta.encuesta_id == encuesta_id).delete(
-        synchronize_session=False
-    )
-    db.delete(encuesta)
+    db.delete(encuesta)  # las preguntas se borran en cascada
     db.commit()
-    return True
-
-
-def opciones_a_lista(opciones_json: str | None) -> list[str] | None:
-    """Convierte las opciones guardadas como JSON de vuelta a lista; None si no hay."""
-    if not opciones_json:
-        return None
-    try:
-        return json.loads(opciones_json)
-    except (ValueError, TypeError):
-        return None
