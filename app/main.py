@@ -19,6 +19,7 @@ from app.api.v1.routers import (
     uploads,
     usuarios,
 )
+from app.core.cabeceras import CabecerasSeguridad
 from app.core.config import settings
 from app.core.errores import registrar_manejadores
 from app.core.limites import LimiteTamanoCuerpo
@@ -63,6 +64,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# Último en agregarse = el más externo: decora todas las respuestas, incluidos 413 y CORS.
+app.add_middleware(CabecerasSeguridad)
 
 for modulo in ROUTERS:
     app.include_router(modulo.router, prefix="/api")
