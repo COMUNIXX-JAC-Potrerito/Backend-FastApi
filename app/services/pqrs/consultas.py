@@ -1,48 +1,59 @@
-from sqlalchemy.orm import Session
+"""Consultas de PQRS a la base de datos."""
 
+from sqlalchemy.orm import Query, Session, selectinload
+
+from app.core.errores import NoEncontrado
 from app.models.pqrs import PQRS
+from app.services.pqrs.catalogos import ESTADO_NUEVA
+
+MENSAJE_NO_EXISTE = "No existe la PQRS indicada"
 
 
-def obtener_entrantes(db: Session):
-    """Devuelve las PQRS nuevas y AÚN SIN comité (bandeja de entrantes, por triar)."""
-    # Al asignarles comité salen de aquí y pasan a "Mis asignadas" del comité.
+def _con_respuestas(db: Session) -> Query:
+    """Carga el hilo de respuestas en una sola consulta (evita N+1 al listar)."""
+    return db.query(PQRS).options(selectinload(PQRS.respuestas))
+
+
+def obtener_entrantes(db: Session) -> list[PQRS]:
+    """PQRS nuevas y sin comité (por triar), de la más antigua a la más nueva."""
     return (
-        db.query(PQRS)
-        .filter(PQRS.estado == "Nueva", PQRS.comite.is_(None))
+        _con_respuestas(db)
+        .filter(PQRS.estado == ESTADO_NUEVA, PQRS.comite.is_(None))
+        .order_by(PQRS.created_at.asc(), PQRS.id.asc())
         .all()
     )
 
 
-def obtener_todas(db: Session):
-    """Devuelve TODAS las PQRS, de la más reciente a la más antigua (historial)."""
-    return db.query(PQRS).order_by(PQRS.created_at.desc()).all()
+def obtener_todas(db: Session) -> list[PQRS]:
+    """Historial completo, de la más reciente a la más antigua."""
+    return _con_respuestas(db).order_by(PQRS.created_at.desc(), PQRS.id.desc()).all()
 
 
-def obtener_por_id(db: Session, pqrs_id: int):
-    """Busca una PQRS por su id; devuelve None si no existe."""
-    return db.query(PQRS).filter(PQRS.id == pqrs_id).first()
-
-
-def obtener_por_codigo(db: Session, codigo: str):
-    """Busca una PQRS por su código de seguimiento; None si no existe."""
-    return db.query(PQRS).filter(PQRS.codigo_seguimiento == codigo).first()
-
-
-def obtener_mias(db: Session, usuario_id: int):
-    """Devuelve las PQRS que radicó un usuario (su FK), más recientes primero."""
+def obtener_mias(db: Session, usuario_id: int) -> list[PQRS]:
     return (
-        db.query(PQRS)
+        _con_respuestas(db)
         .filter(PQRS.radicado_por_id == usuario_id)
-        .order_by(PQRS.created_at.desc())
+        .order_by(PQRS.created_at.desc(), PQRS.id.desc())
         .all()
     )
 
 
-def obtener_asignadas(db: Session, comite: str):
-    """Devuelve las PQRS asignadas a un comité/comisión, más recientes primero."""
+def obtener_asignadas(db: Session, comite: str) -> list[PQRS]:
     return (
-        db.query(PQRS)
+        _con_respuestas(db)
         .filter(PQRS.comite == comite)
-        .order_by(PQRS.created_at.desc())
+        .order_by(PQRS.created_at.desc(), PQRS.id.desc())
         .all()
     )
+
+
+def obtener_por_id(db: Session, pqrs_id: int) -> PQRS:
+    """La PQRS con ese id; lanza NoEncontrado si no existe."""
+    pqrs = db.get(PQRS, pqrs_id)
+    if pqrs is None:
+        raise NoEncontrado(MENSAJE_NO_EXISTE)
+    return pqrs
+
+
+def obtener_por_codigo(db: Session, codigo: str) -> PQRS | None:
+    return db.query(PQRS).filter(PQRS.codigo_seguimiento == codigo).first()

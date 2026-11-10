@@ -1,68 +1,74 @@
-# Este archivo crea la aplicación principal de FastAPI y registra todos los routers
-# del backend para que cada módulo (usuarios, mensajes, encuestas, etc.) quede disponible
-# bajo la API del sistema.
+"""Aplicación FastAPI: middlewares, manejadores de errores y routers."""
+
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-# Importa los routers que exponen los endpoints HTTP de cada área del sistema.
-from app.api.v1.routers.auth import router as auth_router
-from app.api.v1.routers.comunicaciones import router as comunicaciones_router
-from app.api.v1.routers.encuestas import router as encuestas_router
-from app.api.v1.routers.envios import router as envios_router
-from app.api.v1.routers.mensajes import router as mensajes_router
-from app.api.v1.routers.pqrs import router as pqrs_router
-from app.api.v1.routers.publicaciones import router as publicaciones_router
-from app.api.v1.routers.reportes import router as reportes_router
-from app.api.v1.routers.uploads import router as uploads_router
-from app.api.v1.routers.usuarios import router as usuarios_router
-from app.core.config import settings
-from app.db.session import Base, engine
-from app.models import (  # noqa: F401  (importados para que Base registre las tablas antes de create_all)
-    comunicacion,
-    encuesta,
-    envio_masivo,
-    mensaje,
+from app import models  # noqa: F401  (registra todas las tablas en Base.metadata)
+from app.api.v1.routers import (
+    auth,
+    comunicaciones,
+    encuestas,
+    envios,
+    mensajes,
     pqrs,
-    publicacion,
-    user,
+    publicaciones,
+    reportes,
+    uploads,
+    usuarios,
+)
+from app.core.config import settings
+from app.core.errores import registrar_manejadores
+from app.core.limites import LimiteTamanoCuerpo
+from app.core.logs import configurar_logs
+from app.db.session import Base, engine
+
+# Tamaño máximo de cualquier petición: el adjunto (10 MB) más el resto del formulario.
+MAX_BYTES_PETICION = 12 * 1024 * 1024
+
+ROUTERS = (
+    auth,
+    pqrs,
+    usuarios,
+    publicaciones,
+    mensajes,
+    comunicaciones,
+    envios,
+    reportes,
+    uploads,
+    encuestas,
 )
 
-# Crea las tablas que aún no existan al arrancar la API y asegura que los modelos
-# estén registrados antes de ejecutar la base de datos.
-Base.metadata.create_all(bind=engine)
 
-# Instancia principal de la aplicación FastAPI que expone los endpoints del backend.
-app = FastAPI(title="COMUNIX API")
+@asynccontextmanager
+async def ciclo_de_vida(_: FastAPI) -> AsyncIterator[None]:
+    # create_all solo crea tablas nuevas; NO modifica las existentes (eso requiere migraciones).
+    Base.metadata.create_all(bind=engine)
+    yield
 
-# Orígenes permitidos para CORS: define qué dominios frontend pueden consumir la API.
-# Esto evita errores de seguridad cuando el cliente corre en localhost o un deploy externo.
-origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
 
-# Configura el middleware de CORS para permitir peticiones desde los orígenes autorizados.
+configurar_logs()
+
+app = FastAPI(title="COMUNIX API", lifespan=ciclo_de_vida)
+
+registrar_manejadores(app)
+app.add_middleware(LimiteTamanoCuerpo, maximo_bytes=MAX_BYTES_PETICION)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_origin_regex=settings.cors_origin_regex,  # acepta las URLs de Vercel
+    allow_origins=settings.lista_cors_origins,
+    allow_origin_regex=settings.cors_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Registra cada grupo de rutas según el módulo funcional del sistema.
-app.include_router(auth_router, prefix="/api")
-app.include_router(pqrs_router, prefix="/api")
-app.include_router(usuarios_router, prefix="/api")
-app.include_router(publicaciones_router, prefix="/api")
-app.include_router(mensajes_router, prefix="/api")
-app.include_router(comunicaciones_router, prefix="/api")
-app.include_router(envios_router, prefix="/api")
-app.include_router(reportes_router, prefix="/api")
-app.include_router(uploads_router, prefix="/api")
-app.include_router(encuestas_router, prefix="/api")
+for modulo in ROUTERS:
+    app.include_router(modulo.router, prefix="/api")
 
 
-# Endpoint de salud para comprobar que la API está viva y disponible.
-# GET y HEAD: los monitores de uptime suelen requerir HEAD para verificar disponibilidad.
-@app.api_route("/health", methods=["GET", "HEAD"])
+# GET y HEAD: los monitores de disponibilidad (UptimeRobot) suelen usar HEAD.
+@app.api_route("/health", methods=["GET", "HEAD"], tags=["salud"])
 def health_check():
     return {"status": "ok"}
