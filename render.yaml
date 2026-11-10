@@ -17,9 +17,9 @@ services:
         sync: false
       - key: CORS_ORIGINS
         sync: false
-      # Proxies delante de la app (el balanceador de Render). Ver docs/despliegue.md.
+      # Proxies delante de la app: Cloudflare + balanceador de Render. Ver docs/despliegue.md.
       - key: PROXIES_CONFIABLES
-        value: "1"
+        value: "2"
       # Cloudinary para adjuntos (multimedia/archivos). Formato:
       # cloudinary://<api_key>:<api_secret>@<cloud_name>
       - key: CLOUDINARY_URL

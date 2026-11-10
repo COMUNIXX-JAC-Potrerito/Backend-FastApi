@@ -90,11 +90,12 @@ def responder_encuesta(
     encuesta = obtener_encuesta(db, encuesta_id)
     if not encuesta.publicada:
         raise DatosInvalidos("La encuesta no está publicada")
-    if _ya_respondio(db, encuesta_id, participante):
-        raise Conflicto("Ya respondiste esta encuesta")
+    # Va antes de la verificación de duplicados: así un 409 no delata si esa cuenta ya respondió.
     if participante.usuario_id is None and participante.email and buscar_por_email(db, participante.email):
         # Evita responder en nombre de otra persona (y bloquearle su propia respuesta).
         raise SinPermiso("Ese correo pertenece a una cuenta registrada: inicia sesión para responder")
+    if _ya_respondio(db, encuesta_id, participante):
+        raise Conflicto("Ya respondiste esta encuesta")
     if not participante.nombre or not (participante.email or participante.telefono):
         raise DatosInvalidos("Indica tu nombre y un correo o teléfono para responder")
     _validar_items(encuesta.preguntas, items)

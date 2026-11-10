@@ -39,7 +39,7 @@ El repo `Backend-FastApi` ya tiene un **Dockerfile** y un **`render.yaml`** (Blu
 3. Te pedirá las **variables de entorno** (son secretas):
    - `DATABASE_URL` = la cadena de conexión de Neon.
    - `SECRET_KEY` = una clave **propia de producción** (mínimo 32 caracteres, distinta de la del `.env` local). Genérala con `python -c "import secrets; print(secrets.token_urlsafe(48))"`. Si falta o es corta, la app no arranca. Cambiarla cierra todas las sesiones abiertas.
-   - `PROXIES_CONFIABLES` = `1` (ya viene en `render.yaml`). Indica cuántos proxies propios hay delante de la app, para que los límites de frecuencia usen la IP real del cliente y no una que él mismo escriba en `X-Forwarded-For`. Si algún día se pone Cloudflare u otro proxy delante de Render, súbelo a `2`.
+   - `PROXIES_CONFIABLES` = `2` (es el valor por defecto y ya viene en `render.yaml`). Indica cuántos proxies hay delante de la app, para que los límites de frecuencia usen la IP real del cliente y no una que él mismo escriba en `X-Forwarded-For`. En Render son dos: Cloudflare y el balanceador de Render, así que la cabecera llega como `<cliente>, <borde de Cloudflare>`. **No lo bajes a `1`**: la app tomaría la IP de Cloudflare, que comparten muchos usuarios, y un solo abusador bloquearía a todos. Si se agrega otro proxy propio delante (p. ej. un Cloudflare de un dominio personalizado), súbelo en uno.
    - `CORS_ORIGINS` = tu URL de Vercel (ej. `https://frontend-angular-comunixx.vercel.app`). Si aún no la tienes, pon `http://localhost:4200` y la actualizas después.
 4. **Deploy.** Tarda unos minutos (construye el Docker). Te da una URL tipo `https://comunix-backend.onrender.com`.
 5. Verifica:
