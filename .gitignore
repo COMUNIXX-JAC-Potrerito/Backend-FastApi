@@ -12,3 +12,5 @@ wheels/
 
 # Base de datos local de desarrollo (SQLite)
 dev.db
+# Archivo temporal de la auditoría de dependencias (CI)
+requisitos.txt
