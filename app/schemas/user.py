@@ -1,19 +1,33 @@
-from pydantic import BaseModel
+from typing import Annotated
+
+from pydantic import BaseModel, Field, field_validator
+
+from app.schemas.comunes import Codigo, Correo, DesdeORM, Telefono
+
+# bcrypt solo usa los primeros 72 bytes: una clave más larga se truncaría sin aviso.
+_MAX_BYTES_CLAVE = 72
 
 
 class UserLogin(BaseModel):
-    email: str
-    password: str
+    email: Correo
+    password: Annotated[str, Field(max_length=128)]
 
 
 class UserCreate(BaseModel):
-    full_name: str
-    email: str
-    password: str
-    phone: str
+    full_name: Annotated[str, Field(min_length=1, max_length=120)]
+    email: Correo
+    password: Annotated[str, Field(max_length=128)]
+    phone: Telefono
+
+    @field_validator("password")
+    @classmethod
+    def _limite_bcrypt(cls, valor: str) -> str:
+        if len(valor.encode("utf-8")) > _MAX_BYTES_CLAVE:
+            raise ValueError("la contraseña no puede superar 72 bytes")
+        return valor
 
 
-class UserResponse(BaseModel):
+class UserResponse(DesdeORM):
     id: int
     email: str
     full_name: str
@@ -21,14 +35,11 @@ class UserResponse(BaseModel):
     role: str
     comite: str | None = None
 
-    class Config:
-        from_attributes = True
-
 
 class CambiarRol(BaseModel):
-    rol: str
+    rol: Codigo
 
 
 class CambiarComite(BaseModel):
     # Comité/comisión del dignatario. Vacío ("") lo deja sin comisión.
-    comite: str
+    comite: Annotated[str, Field(max_length=100)]

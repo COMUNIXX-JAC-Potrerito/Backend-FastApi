@@ -1,52 +1,47 @@
+"""Radicación de PQRS por parte de la comunidad."""
+
 from sqlalchemy.orm import Session
 
+from app.core.errores import DatosInvalidos
 from app.models.pqrs import PQRS
+from app.models.user import User
+from app.schemas.pqrs import PQRSCreate
 from app.services.pqrs.catalogos import es_tipo_valido
 
 
-def crear_pqrs(
-    db: Session,
-    tipo: str,
-    asunto: str,
-    descripcion: str,
-    es_anonima: bool,
-    nombre_contacto: str | None,
-    email_contacto: str | None,
-    telefono_contacto: str | None,
-    radicado_por_id: int | None,
-    adjunto_url: str | None = None,
-    adjunto_tipo: str | None = None,
-    adjunto_nombre: str | None = None,
-) -> PQRS:
-    """Crea y guarda una PQRS (valida el tipo; exige datos de contacto si no es anónima)."""
-    if not es_tipo_valido(tipo):
-        raise ValueError("El tipo de PQRS no es válido (Peticion, Queja, Reclamo o Sugerencia)")
+def _tiene_texto(valor: str | None) -> bool:
+    return bool(valor and valor.strip())
 
-    # Si NO es anónima, se exigen datos de contacto (nombre + correo o teléfono).
-    if not es_anonima:
-        if not (nombre_contacto and nombre_contacto.strip()):
-            raise ValueError("Indica tu nombre, o marca la PQRS como anónima")
-        tiene_correo = email_contacto and email_contacto.strip()
-        tiene_tel = telefono_contacto and telefono_contacto.strip()
-        if not (tiene_correo or tiene_tel):
-            raise ValueError("Indica un correo o un teléfono de contacto, o marca la PQRS como anónima")
 
-    nueva_pqrs = PQRS(
-        tipo=tipo,
-        asunto=asunto,
-        descripcion=descripcion,
-        es_anonima=es_anonima,
-        nombre_contacto=nombre_contacto,
-        email_contacto=email_contacto,
-        telefono_contacto=telefono_contacto,
-        radicado_por_id=radicado_por_id,
-        adjunto_url=adjunto_url,
-        adjunto_tipo=adjunto_tipo,
-        adjunto_nombre=adjunto_nombre,
+def completar_contacto(datos: PQRSCreate, usuario: User | None) -> PQRSCreate:
+    """Si hay sesión y la PQRS no es anónima, completa el contacto con la cuenta."""
+    if usuario is None or datos.es_anonima:
+        return datos
+    return datos.model_copy(
+        update={
+            "nombre_contacto": datos.nombre_contacto or usuario.full_name,
+            "email_contacto": datos.email_contacto or usuario.email,
+            "telefono_contacto": datos.telefono_contacto or usuario.phone,
+        }
     )
 
-    db.add(nueva_pqrs)
-    db.commit()
-    db.refresh(nueva_pqrs)
 
-    return nueva_pqrs
+def _validar(datos: PQRSCreate) -> None:
+    if not es_tipo_valido(datos.tipo):
+        raise DatosInvalidos("El tipo de PQRS no es válido (Peticion, Queja, Reclamo o Sugerencia)")
+    if datos.es_anonima:
+        return
+    if not _tiene_texto(datos.nombre_contacto):
+        raise DatosInvalidos("Indica tu nombre, o marca la PQRS como anónima")
+    if not (_tiene_texto(datos.email_contacto) or _tiene_texto(datos.telefono_contacto)):
+        raise DatosInvalidos("Indica un correo o un teléfono de contacto, o marca la PQRS como anónima")
+
+
+def crear_pqrs(db: Session, datos: PQRSCreate, radicado_por_id: int | None) -> PQRS:
+    """Valida y guarda una PQRS nueva."""
+    _validar(datos)
+    pqrs = PQRS(**datos.model_dump(), radicado_por_id=radicado_por_id)
+    db.add(pqrs)
+    db.commit()
+    db.refresh(pqrs)
+    return pqrs

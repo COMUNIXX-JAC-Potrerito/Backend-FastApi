@@ -58,7 +58,7 @@ Documento de contexto para que cualquier IA (o persona) retome el trabajo sin pe
 **Despliegue: preparado (falta que Juanca haga las cuentas).** Stack: BD **Neon** (✅) · Backend **Render** + pinger (UptimeRobot) para que no se duerma · Frontend **Vercel** (frontend YA desplegado). **Koyeb se descartó** (se fusionó con Mistral y quitó el hosting web gratis).
 - Backend: `Dockerfile` + `.dockerignore` + `render.yaml` (Blueprint) en la raíz. CORS por env `CORS_ORIGINS`; puerto por `$PORT` (Render lo inyecta). Envs en Render: `DATABASE_URL`, `SECRET_KEY`, `CORS_ORIGINS`.
 - Frontend: `environment.prod.ts` (poner la URL de Render + `/api`), `fileReplacements` en `angular.json`, `vercel.json` (ruteo SPA).
-- **Guía paso a paso en `docs/despliegue.md`.** Instrucciones de BD para Simón en `docs/instrucciones-base-de-datos-simon.md`.
+- **Guía paso a paso en `docs/despliegue.md`.**
 
 **Pendiente:**
 - JDS-60 (Simón): entregó la cadena → se puede cerrar.

@@ -1,40 +1,56 @@
-# Configuración central de la aplicación: lee variables de entorno y centraliza
-# la conexión a la base de datos, JWT y servicios externos como SMTP y Cloudinary.
-from pydantic_settings import BaseSettings
+"""Configuración central: se lee de variables de entorno (o del archivo `.env`)."""
+
+from urllib.parse import urlparse
+
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Valores de ejemplo que nunca deben usarse para firmar tokens reales.
+_CLAVES_DE_EJEMPLO = {"cambia-esto-por-una-clave-secreta-larga"}
 
 
 class Settings(BaseSettings):
-    # URL de conexión a la base de datos (SQLite, PostgreSQL, etc.).
+    model_config = SettingsConfigDict(env_file=".env")
+
+    # Cadena de conexión de SQLAlchemy (PostgreSQL en producción, SQLite en local).
     database_url: str
-    # Clave secreta usada para firmar y verificar tokens JWT de autenticación.
-    secret_key: str
+    # Clave para firmar los JWT. Generar con:
+    #   python -c "import secrets; print(secrets.token_urlsafe(48))"
+    secret_key: str = Field(min_length=32)
 
     # Orígenes permitidos por CORS, separados por coma.
-    # En producción se agrega el dominio del frontend (Vercel) por variable de entorno.
     cors_origins: str = "http://localhost:4200"
+    # Patrón de orígenes dinámicos: solo los despliegues del frontend del proyecto
+    # en Vercel (URL oficial y URLs de cada deploy), no cualquier app de Vercel.
+    cors_origin_regex: str | None = r"https://frontend-angular-comunixx(-[a-z0-9-]+)?\.vercel\.app"
 
-    # Patrón (regex) de orígenes permitidos, para dominios dinámicos.
-    # Por defecto acepta cualquier subdominio de Vercel (las URLs cambian por deploy).
-    cors_origin_regex: str | None = r"https://.*\.vercel\.app"
-
-    # Config SMTP para el envío masivo de correos (OPCIONAL).
-    # Si no se define smtp_host/smtp_user, el envío masivo funciona en modo
-    # "simulado" (registra el envío pero no manda correos reales).
+    # SMTP para el envío masivo (opcional). Sin host/usuario, el envío es "simulado".
     smtp_host: str | None = None
     smtp_port: int = 587
     smtp_user: str | None = None
     smtp_password: str | None = None
     smtp_from: str | None = None
 
-    # Cloudinary (almacenamiento de multimedia/archivos). Formato:
-    # cloudinary://<api_key>:<api_secret>@<cloud_name>
-    # Si no se define, la subida de adjuntos queda deshabilitada (devuelve error claro).
+    # Cloudinary: cloudinary://<api_key>:<api_secret>@<cloud_name>. Sin él, no hay subidas.
     cloudinary_url: str | None = None
 
-    class Config:
-        # Carga las variables de entorno desde un archivo .env en el proyecto.
-        env_file = ".env"
+    @field_validator("secret_key")
+    @classmethod
+    def _rechazar_clave_de_ejemplo(cls, valor: str) -> str:
+        if valor in _CLAVES_DE_EJEMPLO:
+            raise ValueError("SECRET_KEY usa el valor de ejemplo; genera una clave propia")
+        return valor
+
+    @property
+    def lista_cors_origins(self) -> list[str]:
+        return [origen.strip() for origen in self.cors_origins.split(",") if origen.strip()]
+
+    @property
+    def cloudinary_cloud_name(self) -> str | None:
+        """Nombre de la nube de Cloudinary, para validar que los adjuntos vengan de ella."""
+        if not self.cloudinary_url:
+            return None
+        return urlparse(self.cloudinary_url).hostname
 
 
-# Instancia global con todas las configuraciones leídas del entorno.
 settings = Settings()
