@@ -17,6 +17,22 @@ from app.services.auth.validaciones import normalizar_email
 from app.services.encuestas.gestion import TIPO_OPCIONES, obtener_encuesta
 
 MENSAJE_YA_RESPONDIO = "Ya respondiste esta encuesta"
+# Índice único (encuesta_id, usuario_id): ver migraciones/versions/0002_*.
+INDICE_RESPUESTA_UNICA = "uq_respuestas_encuesta_encuesta_usuario"
+
+
+def es_respuesta_repetida(error: IntegrityError) -> bool:
+    """True solo si el error es el índice de una respuesta por cuenta.
+
+    PostgreSQL informa el nombre de la restricción; SQLite solo las columnas.
+    """
+    diagnostico = getattr(error.orig, "diag", None)
+    if diagnostico is not None and getattr(diagnostico, "constraint_name", None):
+        return diagnostico.constraint_name == INDICE_RESPUESTA_UNICA
+    mensaje = str(error.orig)
+    return INDICE_RESPUESTA_UNICA in mensaje or (
+        "UNIQUE" in mensaje and "respuestas_encuesta.usuario_id" in mensaje
+    )
 
 
 @dataclass(frozen=True)
@@ -118,9 +134,12 @@ def responder_encuesta(
         )
         db.commit()
     except IntegrityError as error:
-        # Dos envíos simultáneos de la misma cuenta: el índice único frena el segundo.
         db.rollback()
-        raise Conflicto(MENSAJE_YA_RESPONDIO) from error
+        # Dos envíos simultáneos de la misma cuenta: el índice único frena el segundo.
+        # Cualquier otro error sigue al manejador global (que lo registra en el log).
+        if participante.usuario_id is not None and es_respuesta_repetida(error):
+            raise Conflicto(MENSAJE_YA_RESPONDIO) from error
+        raise
     db.refresh(respuesta)
     return respuesta
 

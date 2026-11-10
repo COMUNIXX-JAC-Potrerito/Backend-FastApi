@@ -27,8 +27,20 @@ pedía una columna que no existía y la app respondía error 500).
 - Una base creada antes de las migraciones (como la de Neon) tiene las tablas
   pero no `alembic_version`: la app la **marca** como que ya está en la `0001`,
   sin tocar nada, y desde ahí aplica las siguientes.
+- Si una base tiene tablas propias **sin registro y con tablas o columnas
+  faltantes** (p. ej. un `dev.db` viejo), la app **no arranca** y dice qué falta:
+  marcarla ocultaría el problema. En local, lo más simple es borrar ese `dev.db`.
 - En PostgreSQL cada migración corre dentro de una transacción: si algo falla, se
-  deshace completa y la base queda como estaba.
+  deshace completa y la base queda como estaba. Si una migración falla en Render,
+  el despliegue nuevo no arranca y la versión anterior sigue atendiendo; basta
+  corregir y volver a desplegar.
+- Un bloqueo de PostgreSQL evita que dos instancias migren a la vez, y si una
+  tabla está ocupada más de 15 s la migración falla en vez de colgar el despliegue.
+
+> ⚠️ **Tu `.env` decide a qué base le aplicas las migraciones.** Si su
+> `DATABASE_URL` es la de Neon, iniciar `uvicorn` en local **migra Neon**. Para
+> desarrollar usa `DATABASE_URL=sqlite:///./dev.db` (con `sqlite://` en memoria
+> las migraciones no sirven: cada conexión ve una base distinta y vacía).
 
 | Migración | Qué hace |
 |---|---|
@@ -44,7 +56,7 @@ Ejemplo: agregar `barrio` a los usuarios.
    barrio = Column(String, nullable=True)
    ```
 2. Genera la migración. Alembic compara los modelos con una base al día y
-   escribe el cambio por ti (usa una base local, nunca la de Neon):
+   escribe el cambio por ti (con `DATABASE_URL=sqlite:///./dev.db`, nunca Neon):
    ```bash
    uv run python -m app.db.migrar          # deja tu base local al día
    uv run alembic revision --autogenerate --rev-id 0003 -m "barrio de los usuarios"
