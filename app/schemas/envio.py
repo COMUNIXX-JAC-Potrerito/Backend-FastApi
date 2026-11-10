@@ -1,10 +1,10 @@
 from pydantic import BaseModel
 
-from app.schemas.comunes import TextoExtenso, Titulo
+from app.schemas.comunes import TextoExtenso, TituloUnaLinea
 
 
 class EnvioCreate(BaseModel):
-    asunto: Titulo
+    asunto: TituloUnaLinea
     contenido: TextoExtenso
 
 

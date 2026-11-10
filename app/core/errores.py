@@ -61,6 +61,7 @@ _MENSAJES_VALIDACION = {
     "too_long": "admite como máximo {max_length} elementos",
     "too_short": "debe tener al menos {min_length} elementos",
     "string_type": "debe ser texto",
+    "string_pattern_mismatch": "tiene caracteres no permitidos",
     "int_parsing": "debe ser un número entero",
     "bool_parsing": "debe ser verdadero o falso",
     "datetime_parsing": "debe ser una fecha válida",

@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, StringConstraints, field_validator
 
 from app.schemas.comunes import Codigo, Correo, DesdeORM, Telefono
 
@@ -14,7 +14,7 @@ class UserLogin(BaseModel):
 
 
 class UserCreate(BaseModel):
-    full_name: Annotated[str, Field(min_length=1, max_length=120)]
+    full_name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=120)]
     email: Correo
     password: Annotated[str, Field(max_length=128)]
     phone: Telefono

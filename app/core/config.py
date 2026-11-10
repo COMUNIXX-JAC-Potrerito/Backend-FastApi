@@ -24,6 +24,11 @@ class Settings(BaseSettings):
     # en Vercel (URL oficial y URLs de cada deploy), no cualquier app de Vercel.
     cors_origin_regex: str | None = r"https://frontend-angular-comunixx(-[a-z0-9-]+)?\.vercel\.app"
 
+    # Proxies propios delante de la app (Render = 1). La IP real del cliente es la
+    # entrada de X-Forwarded-For que agregó el proxy más lejano de los nuestros;
+    # las anteriores las escribe el cliente y se pueden falsear. 0 = sin proxy.
+    proxies_confiables: int = Field(default=1, ge=0, le=10)
+
     # SMTP para el envío masivo (opcional). Sin host/usuario, el envío es "simulado".
     smtp_host: str | None = None
     smtp_port: int = 587

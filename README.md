@@ -152,7 +152,7 @@ COMUNIXX/
 - Se agregó `[tool.pytest.ini_options]` con `pythonpath = ["."]` (para que pytest encuentre el paquete `app`). NO afecta despliegue.
 
 ### Dependencias instaladas
-Producción: `fastapi`, `uvicorn[standard]`, `pydantic-settings`, `python-dotenv`, `sqlalchemy`, `passlib[bcrypt]`, `python-jose[cryptography]`.
+Producción: `fastapi`, `uvicorn[standard]`, `pydantic-settings`, `python-dotenv`, `sqlalchemy`, `bcrypt`, `pyjwt` (en la v1.2 reemplazaron a `passlib` y `python-jose`, que ya no se mantienen).
 Dev: `pytest`, `httpx`, `ruff`.
 
 ### Base de datos (temporal)
@@ -164,8 +164,8 @@ Usando **SQLite local** (`DATABASE_URL=sqlite:///./dev.db` en `.env`) para no bl
 - `app/core/config.py`: `Settings(BaseSettings)` con `database_url: str` y `secret_key: str`, lee de `.env`.
 - `app/schemas/user.py`: `UserLogin` (email, password) y `UserResponse` (id, email, full_name, role) — sin exponer hash.
 - `app/schemas/token.py`: `Token` (access_token, token_type).
-- `app/services/auth/seguridad.py`: `hash_password()` y `verify_password()` con `CryptContext(schemes=["bcrypt"])`. FUNCIONA.
-- `app/services/auth/tokens.py`: `create_access_token(data: dict)` con `jose.jwt`, expiración 8h, algoritmo HS256, firma con `settings.secret_key`. FUNCIONA.
+- `app/services/auth/seguridad.py`: `hash_password()` y `verify_password()` con la librería `bcrypt`. FUNCIONA.
+- `app/services/auth/tokens.py`: `create_access_token(data: dict)` con PyJWT (`jwt`), expiración 8h, algoritmo HS256, firma con `settings.secret_key`. FUNCIONA.
 - `app/services/auth/validaciones.py`: `is_password_strong(password)` — longitud ≥8, ≥1 mayúscula, ≥1 dígito. PROBADO con pytest (4 tests OK).
 - `app/services/auth/gestion.py`: `authenticate_user(db, email, password)` y `login_user(db, email, password)`. FUNCIONA.
 - `app/api/v1/routers/auth.py`: `POST /login`, `Depends(get_db)`, `HTTPException(401)` si credenciales inválidas, devuelve `Token`. FUNCIONA.
