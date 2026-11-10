@@ -1,85 +1,52 @@
-# Operaciones CRUD para publicaciones institucionales: listar, crear, editar y borrar.
-from datetime import datetime
+"""Publicaciones institucionales: decisiones, actividades y contenidos."""
 
 from sqlalchemy.orm import Session
 
+from app.core.errores import DatosInvalidos, NoEncontrado
 from app.models.publicacion import Publicacion
+from app.schemas.publicacion import PublicacionCreate
 from app.services.publicaciones.catalogos import es_categoria_valida
-from app.services.publicaciones.consultas import obtener_por_id, obtener_todas
 
 
-# Devuelve todas las publicaciones, opcionalmente filtradas por categoría.
-def listar_publicaciones(db: Session, categoria: str | None = None):
-    return obtener_todas(db, categoria)
+def _validar(datos: PublicacionCreate) -> None:
+    if not es_categoria_valida(datos.categoria):
+        raise DatosInvalidos("La categoría no es válida (decision, actividad o contenido)")
 
 
-# Crea una nueva publicación con validación de categoría y almacenamiento de adjuntos.
-def crear_publicacion(
-    db: Session,
-    categoria: str,
-    titulo: str,
-    contenido: str,
-    fecha_evento: datetime | None,
-    publicado_por_id: int | None,
-    adjunto_url: str | None = None,
-    adjunto_tipo: str | None = None,
-    adjunto_nombre: str | None = None,
-) -> Publicacion:
-    if not es_categoria_valida(categoria):
-        raise ValueError("La categoría no es válida (decision, actividad o contenido)")
+def _obtener(db: Session, publicacion_id: int) -> Publicacion:
+    publicacion = db.get(Publicacion, publicacion_id)
+    if publicacion is None:
+        raise NoEncontrado("Publicación no encontrada")
+    return publicacion
 
-    publicacion = Publicacion(
-        categoria=categoria,
-        titulo=titulo,
-        contenido=contenido,
-        fecha_evento=fecha_evento,
-        publicado_por_id=publicado_por_id,
-        adjunto_url=adjunto_url,
-        adjunto_tipo=adjunto_tipo,
-        adjunto_nombre=adjunto_nombre,
-    )
+
+def listar_publicaciones(db: Session, categoria: str | None = None) -> list[Publicacion]:
+    """Publicaciones (filtradas por categoría si se indica), más recientes primero."""
+    query = db.query(Publicacion)
+    if categoria:
+        query = query.filter(Publicacion.categoria == categoria)
+    return query.order_by(Publicacion.created_at.desc(), Publicacion.id.desc()).all()
+
+
+def crear_publicacion(db: Session, datos: PublicacionCreate, publicado_por_id: int) -> Publicacion:
+    _validar(datos)
+    publicacion = Publicacion(**datos.model_dump(), publicado_por_id=publicado_por_id)
     db.add(publicacion)
     db.commit()
     db.refresh(publicacion)
     return publicacion
 
 
-# Actualiza una publicación existente para cambiar su contenido, categoría o adjunto.
-def actualizar_publicacion(
-    db: Session,
-    publicacion_id: int,
-    categoria: str,
-    titulo: str,
-    contenido: str,
-    fecha_evento: datetime | None,
-    adjunto_url: str | None = None,
-    adjunto_tipo: str | None = None,
-    adjunto_nombre: str | None = None,
-):
-    if not es_categoria_valida(categoria):
-        raise ValueError("La categoría no es válida (decision, actividad o contenido)")
-
-    publicacion = obtener_por_id(db, publicacion_id)
-    if publicacion is None:
-        return None
-
-    publicacion.categoria = categoria
-    publicacion.titulo = titulo
-    publicacion.contenido = contenido
-    publicacion.fecha_evento = fecha_evento
-    publicacion.adjunto_url = adjunto_url
-    publicacion.adjunto_tipo = adjunto_tipo
-    publicacion.adjunto_nombre = adjunto_nombre
+def actualizar_publicacion(db: Session, publicacion_id: int, datos: PublicacionCreate) -> Publicacion:
+    _validar(datos)
+    publicacion = _obtener(db, publicacion_id)
+    for campo, valor in datos.model_dump().items():
+        setattr(publicacion, campo, valor)
     db.commit()
     db.refresh(publicacion)
     return publicacion
 
 
-# Elimina una publicación si existe; devuelve True cuando se borra correctamente.
-def eliminar_publicacion(db: Session, publicacion_id: int) -> bool:
-    publicacion = obtener_por_id(db, publicacion_id)
-    if publicacion is None:
-        return False
-    db.delete(publicacion)
+def eliminar_publicacion(db: Session, publicacion_id: int) -> None:
+    db.delete(_obtener(db, publicacion_id))
     db.commit()
-    return True

@@ -6,23 +6,16 @@ de trabajo. Es una lista INICIAL; se refinará con los estatutos reales de la
 JAC de Potrerito.
 """
 
-# Tipos de PQRS
-TIPOS_VALIDOS = ["Peticion", "Queja", "Reclamo", "Sugerencia"]
+TIPOS_VALIDOS = ("Peticion", "Queja", "Reclamo", "Sugerencia")
 
-# Estados del ciclo de vida de una PQRS
 ESTADO_NUEVA = "Nueva"
 ESTADO_EN_PROCESO = "En_Proceso"
 ESTADO_EN_ESPERA = "En_Espera"  # esperando una respuesta del ciudadano
 ESTADO_FINALIZADA = "Finalizada"
-ESTADOS_VALIDOS = [
-    ESTADO_NUEVA,
-    ESTADO_EN_PROCESO,
-    ESTADO_EN_ESPERA,
-    ESTADO_FINALIZADA,
-]
+ESTADOS_VALIDOS = (ESTADO_NUEVA, ESTADO_EN_PROCESO, ESTADO_EN_ESPERA, ESTADO_FINALIZADA)
 
-# A quién se puede asignar una PQRS: cargos (dignatarios) + comisiones de trabajo
-COMITES_VALIDOS = [
+# A quién se puede asignar una PQRS: cargos (dignatarios) + comisiones de trabajo.
+COMITES_VALIDOS = (
     # Cargos / dignatarios
     "Presidente",
     "Vicepresidente",
@@ -36,19 +29,16 @@ COMITES_VALIDOS = [
     "Comisión de Salud",
     "Comisión de Medio Ambiente y Gestión del Riesgo",
     "Comisión de Educación y Cultura",
-]
+)
 
 
 def es_tipo_valido(tipo: str) -> bool:
-    """Indica si el tipo de PQRS es válido (Peticion/Queja/Reclamo/Sugerencia)."""
     return tipo in TIPOS_VALIDOS
 
 
 def es_estado_valido(estado: str) -> bool:
-    """Indica si el estado de PQRS es válido (Nueva/En_Proceso/En_Espera/Finalizada)."""
     return estado in ESTADOS_VALIDOS
 
 
 def es_comite_valido(comite: str) -> bool:
-    """Indica si el comité/cargo está en la lista de comités válidos de la JAC."""
     return comite in COMITES_VALIDOS

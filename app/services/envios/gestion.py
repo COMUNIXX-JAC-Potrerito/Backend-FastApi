@@ -1,26 +1,43 @@
+"""Envío masivo de comunicados por correo a los usuarios registrados."""
+
+import logging
+
 from sqlalchemy.orm import Session
 
 from app.models.envio_masivo import EnvioMasivo
 from app.models.user import User
+from app.schemas.envio import EnvioCreate
 from app.services.envios.correo import enviar_correos
 
+logger = logging.getLogger(__name__)
 
-def enviar_masivo(db: Session, asunto: str, contenido: str, enviado_por_id: int | None):
-    """Envía un comunicado a todos los correos registrados y guarda el registro del envío."""
-    # Destinatarios = todos los usuarios registrados con correo
-    correos = [u.email for u in db.query(User).filter(User.email.isnot(None)).all()]
 
-    modo = enviar_correos(correos, asunto, contenido)
+def _correos_activos(db: Session) -> list[str]:
+    usuarios = db.query(User.email).filter(User.email.isnot(None), User.is_active.isnot(False)).all()
+    return [email for (email,) in usuarios]
+
+
+def enviar_masivo(db: Session, datos: EnvioCreate, enviado_por_id: int) -> dict:
+    """Envía el comunicado a todos los usuarios activos y guarda el registro."""
+    correos = _correos_activos(db)
+    resultado = enviar_correos(correos, datos.asunto, datos.contenido)
 
     envio = EnvioMasivo(
-        asunto=asunto,
-        contenido=contenido,
+        asunto=datos.asunto,
+        contenido=datos.contenido,
         destinatarios=len(correos),
-        modo=modo,
+        modo=resultado.modo,
         enviado_por_id=enviado_por_id,
     )
     db.add(envio)
     db.commit()
     db.refresh(envio)
-
-    return {"envio_id": envio.id, "destinatarios": len(correos), "modo": modo}
+    logger.info(
+        "Envío masivo %s: modo=%s enviados=%s fallidos=%s (por usuario=%s)",
+        envio.id,
+        resultado.modo,
+        resultado.enviados,
+        resultado.fallidos,
+        enviado_por_id,
+    )
+    return {"envio_id": envio.id, "destinatarios": len(correos), "modo": resultado.modo}
