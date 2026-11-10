@@ -12,6 +12,8 @@ Correo = Annotated[str, Field(max_length=254)]
 Telefono = Annotated[str, Field(max_length=30)]
 Codigo = Annotated[str, Field(max_length=50)]  # tipos, estados, roles, categorías
 Titulo = Annotated[str, Field(max_length=200)]
+# Título que viaja en una cabecera (asunto de correo): sin saltos de línea.
+TituloUnaLinea = Annotated[str, Field(max_length=200, pattern=r"^[^\r\n]*$")]
 TextoLargo = Annotated[str, Field(max_length=5_000)]
 TextoExtenso = Annotated[str, Field(max_length=20_000)]
 # Texto obligatorio: se recortan espacios y no puede quedar vacío.

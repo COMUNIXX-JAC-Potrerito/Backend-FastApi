@@ -31,3 +31,8 @@ jobs:
 
       - name: Tests
         run: uv run pytest
+
+      - name: Vulnerabilidades conocidas en dependencias
+        run: |
+          uv export --frozen --no-dev --no-hashes --no-emit-project -o requisitos.txt
+          uvx pip-audit==2.10.1 -r requisitos.txt --no-deps --disable-pip
