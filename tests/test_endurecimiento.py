@@ -20,14 +20,21 @@ def _peticion(xff: str | None, host: str = "10.1.1.1") -> Request:
 
 
 # ---------- IP del cliente detrás del proxy ----------
-def test_ip_cliente_usa_la_entrada_que_agrega_el_proxy_y_no_la_del_cliente():
-    # El cliente puede inventar las primeras entradas; la última la agrega el proxy.
+# En Render, Cloudflare va delante: X-Forwarded-For llega como "<cliente>, <borde de Cloudflare>".
+BORDE_CLOUDFLARE = "104.22.17.40"
+
+
+def test_ip_cliente_en_render_es_la_que_vio_cloudflare_y_no_la_del_borde():
+    assert ip_cliente(_peticion(f"99.61.165.29, {BORDE_CLOUDFLARE}")) == "99.61.165.29"
+
+
+def test_ip_cliente_ignora_las_entradas_que_inventa_el_cliente():
+    assert ip_cliente(_peticion(f"1.2.3.4, 99.61.165.29, {BORDE_CLOUDFLARE}")) == "99.61.165.29"
+
+
+def test_ip_cliente_con_un_solo_proxy_usa_la_ultima_entrada(monkeypatch):
+    monkeypatch.setattr(settings, "proxies_confiables", 1)
     assert ip_cliente(_peticion("1.2.3.4, 203.0.113.9")) == "203.0.113.9"
-
-
-def test_ip_cliente_respeta_varios_proxies_confiables(monkeypatch):
-    monkeypatch.setattr(settings, "proxies_confiables", 2)
-    assert ip_cliente(_peticion("1.1.1.1, 203.0.113.9, 10.0.0.2")) == "203.0.113.9"
 
 
 def test_ip_cliente_sin_proxies_ignora_la_cabecera(monkeypatch):
@@ -43,26 +50,41 @@ def test_ip_cliente_con_cadena_mas_corta_que_los_proxies_usa_la_primera(monkeypa
 def test_falsear_x_forwarded_for_no_evade_el_limite(client):
     codigos = [
         client.post(
-            "/api/pqrs", json=PQRS_ANONIMA, headers={"X-Forwarded-For": f"10.0.0.{i}, 203.0.113.5"}
+            "/api/pqrs",
+            json=PQRS_ANONIMA,
+            headers={"X-Forwarded-For": f"10.0.0.{i}, 203.0.113.5, {BORDE_CLOUDFLARE}"},
         ).status_code
         for i in range(21)
     ]
     assert codigos[20] == 429
 
 
+def test_clientes_distintos_tras_el_mismo_borde_no_comparten_limite(client):
+    codigos = [
+        client.post(
+            "/api/pqrs", json=PQRS_ANONIMA, headers={"X-Forwarded-For": f"198.51.100.{i}, {BORDE_CLOUDFLARE}"}
+        ).status_code
+        for i in range(25)
+    ]
+    assert 429 not in codigos
+
+
 # ---------- Login: el bloqueo por cuenta no deja fuera al dueño ----------
 def test_bloqueo_por_intentos_fallidos_no_bloquea_al_dueno_desde_otra_ip(client, crear_usuario):
     crear_usuario(email="victima@test.com")
-    atacante = {"X-Forwarded-For": "198.51.100.7"}
-    for _ in range(10):
+    atacante = {"X-Forwarded-For": f"198.51.100.7, {BORDE_CLOUDFLARE}"}
+    codigos = [
         client.post(
             "/api/login", json={"email": "victima@test.com", "password": "Mala1234"}, headers=atacante
-        )
+        ).status_code
+        for _ in range(11)
+    ]
+    assert codigos[10] == 429
 
     dueno = client.post(
         "/api/login",
         json={"email": "victima@test.com", "password": CLAVE_PRUEBA},
-        headers={"X-Forwarded-For": "203.0.113.20"},
+        headers={"X-Forwarded-For": f"203.0.113.20, {BORDE_CLOUDFLARE}"},
     )
     assert dueno.status_code == 200
 
@@ -76,6 +98,13 @@ def test_token_sin_vencimiento_se_rechaza(client, ciudadano):
     token = _token(sub=ciudadano.email)
     respuesta = client.get("/api/pqrs/mias", headers={"Authorization": f"Bearer {token}"})
     assert respuesta.status_code == 401
+
+
+def test_token_de_la_version_anterior_sin_iat_sigue_valido(client, ciudadano):
+    # Los tokens emitidos con python-jose (v1.1.0) no traen "iat": las sesiones abiertas siguen.
+    token = _token(sub=ciudadano.email, role=ciudadano.role, exp=datetime.now(UTC) + timedelta(hours=1))
+    respuesta = client.get("/api/pqrs/mias", headers={"Authorization": f"Bearer {token}"})
+    assert respuesta.status_code == 200
 
 
 def test_token_vencido_se_rechaza(client, ciudadano):
@@ -125,6 +154,16 @@ def test_sin_sesion_no_se_responde_con_el_correo_de_una_cuenta(client, encuesta_
     # El dueño de la cuenta todavía puede responder.
     propia = client.post(url, json={"items": items}, headers=cabecera_de(ciudadano))
     assert propia.status_code == 201
+
+
+def test_sin_sesion_no_se_revela_si_una_cuenta_ya_respondio(client, encuesta_publicada, ciudadano):
+    url = f"/api/encuestas/{encuesta_publicada['id']}/responder"
+    items = [{"pregunta_id": encuesta_publicada["preguntas"][0]["id"], "valor": "Bien"}]
+    client.post(url, json={"items": items}, headers=cabecera_de(ciudadano))
+
+    # Misma respuesta (403) haya respondido o no: un 409 delataría su participación.
+    sondeo = client.post(url, json={"items": items, "nombre": "Curioso", "email": ciudadano.email})
+    assert sondeo.status_code == 403
 
 
 # ---------- PQRS: seguimiento público ----------

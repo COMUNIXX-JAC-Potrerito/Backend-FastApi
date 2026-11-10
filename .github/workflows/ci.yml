@@ -35,4 +35,4 @@ jobs:
       - name: Vulnerabilidades conocidas en dependencias
         run: |
           uv export --frozen --no-dev --no-hashes --no-emit-project -o requisitos.txt
-          uvx pip-audit -r requisitos.txt --no-deps --disable-pip
+          uvx pip-audit==2.10.1 -r requisitos.txt --no-deps --disable-pip
