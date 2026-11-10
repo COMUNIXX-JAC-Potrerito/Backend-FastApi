@@ -15,8 +15,10 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 RUN uv sync --no-dev --no-install-project
 
-# Luego el código de la aplicación.
+# Luego el código de la aplicación y las migraciones (se aplican solas al arrancar).
 COPY app ./app
+COPY alembic.ini ./
+COPY migraciones ./migraciones
 
 # La aplicación no necesita privilegios de administrador dentro del contenedor.
 RUN useradd --system --no-create-home --uid 10001 comunix

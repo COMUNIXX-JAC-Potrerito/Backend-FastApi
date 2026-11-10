@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Index, Integer, String
 from sqlalchemy.orm import relationship
 
 from app.core.tiempo import ahora_utc
@@ -32,6 +32,11 @@ class Pregunta(Base):
 
 class RespuestaEncuesta(Base):
     __tablename__ = "respuestas_encuesta"
+    # Una cuenta responde cada encuesta una sola vez, aunque lleguen dos envíos a la
+    # vez. Las respuestas sin cuenta (usuario_id NULL) no chocan: NULL no se repite.
+    __table_args__ = (
+        Index("uq_respuestas_encuesta_encuesta_usuario", "encuesta_id", "usuario_id", unique=True),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     encuesta_id = Column(Integer, ForeignKey("encuestas.id"), nullable=False)
