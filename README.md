@@ -10,7 +10,7 @@ Documento de contexto para que cualquier IA (o persona) retome el trabajo sin pe
 
 ### 🌐 URLs EN PRODUCCIÓN (LIVE — 2026-09-17)
 
-- **Frontend (app):** <https://frontend-angular-comunixx.vercel.app> ← URL oficial estable (sin hash). Las URLs de deploy con hash (`...-li2v0csov-...`) cambian por deploy; NO usarlas para compartir.
+- **Frontend (app):** <https://comunix.vercel.app> ← URL oficial estable (sin hash; antes era frontend-angular-comunixx.vercel.app). Las URLs de deploy con hash (`...-li2v0csov-...`) cambian por deploy; NO usarlas para compartir.
 - **Backend (API):** <https://comunix-backend.onrender.com> · docs `/docs` · health `/health` (responde GET y HEAD).
 - **BD:** Neon (PostgreSQL). **Monitor:** UptimeRobot HTTP a `/health` cada 5 min.
 - **CORS:** regex `https://.*\.vercel\.app` (cubre cualquier deploy de Vercel). ⚠️ Un dominio personalizado NO queda cubierto → agregarlo a `CORS_ORIGINS` en Render si se usa uno.
