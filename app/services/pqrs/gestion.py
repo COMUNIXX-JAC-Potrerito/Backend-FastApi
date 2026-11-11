@@ -4,9 +4,10 @@ from datetime import timedelta
 
 from sqlalchemy.orm import Session
 
-from app.core.errores import DatosInvalidos, NoEncontrado, SinPermiso
+from app.core.errores import Conflicto, DatosInvalidos, NoEncontrado, SinPermiso
 from app.core.tiempo import ahora_utc
 from app.models.pqrs import PQRS, RespuestaPQRS
+from app.services.auth.roles import ROL_SUPERADMIN
 from app.services.pqrs.anonimato import ocultar_si_anonima
 from app.services.pqrs.catalogos import (
     ESTADO_EN_PROCESO,
@@ -75,11 +76,17 @@ def editar_respuesta(db: Session, respuesta_id: int, texto: str, autor_id: int) 
     return _guardar(db, respuesta.pqrs)
 
 
-def asignar_comite(db: Session, pqrs_id: int, comite: str) -> dict:
-    """Asigna el comité responsable. El estado no cambia: sigue "Nueva" para el comité."""
+def asignar_comite(db: Session, pqrs_id: int, comite: str, rol: str) -> dict:
+    """Asigna el comité responsable. El estado no cambia: sigue "Nueva" para el comité.
+
+    RN-012: una vez asignado, el comité no se cambia; solo un superadministrador
+    puede corregir una asignación equivocada.
+    """
     if not es_comite_valido(comite):
         raise DatosInvalidos("El comité/cargo indicado no es válido")
     pqrs = obtener_por_id(db, pqrs_id)
+    if pqrs.comite and pqrs.comite != comite and rol != ROL_SUPERADMIN:
+        raise Conflicto("Esta PQRS ya tiene comité asignado; solo un superadministrador puede reasignarla")
     pqrs.comite = comite
     return _guardar(db, pqrs)
 
