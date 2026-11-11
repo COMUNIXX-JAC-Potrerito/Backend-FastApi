@@ -118,3 +118,44 @@ def test_resumen_cuenta_las_pqrs_en_espera(client, admin, db):
     resumen = client.get("/api/reportes/resumen", headers=cabecera_de(admin)).json()
     assert resumen["pqrs_en_espera"] == 1
     assert resumen["pqrs_total"] == 1
+
+
+# --- RN-012: un comité asignado no se cambia (salvo un superadministrador) ---
+def _asignar(client, usuario, pqrs_id, comite):
+    return client.put(f"/api/pqrs/{pqrs_id}/asignar", json={"comite": comite}, headers=cabecera_de(usuario))
+
+
+def test_asignar_comite_no_cambia_el_estado(client, admin):
+    pqrs = _radicar(client, es_anonima=True)
+    respuesta = _asignar(client, admin, pqrs["id"], "Fiscal")
+    assert respuesta.status_code == 200
+    assert respuesta.json()["comite"] == "Fiscal"
+    assert respuesta.json()["estado"] == "Nueva"
+
+
+def test_administrador_no_reasigna_un_comite_ya_asignado(client, admin):
+    pqrs = _radicar(client, es_anonima=True)
+    _asignar(client, admin, pqrs["id"], "Fiscal")
+
+    respuesta = _asignar(client, admin, pqrs["id"], "Tesorero")
+
+    assert respuesta.status_code == 409
+    assert "superadministrador" in respuesta.json()["detail"]
+    historial = client.get("/api/pqrs/historial", headers=cabecera_de(admin)).json()
+    assert historial[0]["comite"] == "Fiscal"
+
+
+def test_asignar_el_mismo_comite_otra_vez_no_falla(client, admin):
+    pqrs = _radicar(client, es_anonima=True)
+    _asignar(client, admin, pqrs["id"], "Fiscal")
+    assert _asignar(client, admin, pqrs["id"], "Fiscal").status_code == 200
+
+
+def test_superadministrador_puede_corregir_el_comite(client, admin, superadmin):
+    pqrs = _radicar(client, es_anonima=True)
+    _asignar(client, admin, pqrs["id"], "Fiscal")
+
+    respuesta = _asignar(client, superadmin, pqrs["id"], "Tesorero")
+
+    assert respuesta.status_code == 200
+    assert respuesta.json()["comite"] == "Tesorero"
