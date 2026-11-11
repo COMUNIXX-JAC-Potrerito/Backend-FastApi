@@ -1,5 +1,7 @@
 import ssl
 
+import pytest
+
 from app.db.session import opciones_motor
 from app.services.envios import correo
 
@@ -62,20 +64,34 @@ def test_sin_smtp_el_envio_es_simulado():
     assert resultado.modo == "simulado"
 
 
-def test_cors_no_acepta_cualquier_app_de_vercel(client):
-    ajena = client.options(
-        "/health",
-        headers={"Origin": "https://atacante.vercel.app", "Access-Control-Request-Method": "GET"},
-    )
-    propia = client.options(
-        "/health",
-        headers={
-            "Origin": "https://frontend-angular-comunixx-li2v0csov-equipo.vercel.app",
-            "Access-Control-Request-Method": "GET",
-        },
-    )
-    assert "access-control-allow-origin" not in ajena.headers
-    assert propia.headers["access-control-allow-origin"].endswith(".vercel.app")
+def _origen_permitido(client, origen: str) -> bool:
+    respuesta = client.options("/health", headers={"Origin": origen, "Access-Control-Request-Method": "GET"})
+    return respuesta.headers.get("access-control-allow-origin") == origen
+
+
+@pytest.mark.parametrize(
+    "origen",
+    [
+        "https://comunix.vercel.app",
+        "https://comunix-6fns6cas8-comunixx.vercel.app",
+        "https://comunix-git-develop-comunixx.vercel.app",
+    ],
+)
+def test_cors_acepta_los_despliegues_del_frontend(client, origen):
+    assert _origen_permitido(client, origen)
+
+
+@pytest.mark.parametrize(
+    "origen",
+    [
+        "https://atacante.vercel.app",
+        "https://comunix-falso.vercel.app",
+        "https://comunix.vercel.app.atacante.com",
+        "http://comunix.vercel.app",
+    ],
+)
+def test_cors_no_acepta_cualquier_app_de_vercel(client, origen):
+    assert not _origen_permitido(client, origen)
 
 
 def test_health_responde_get_y_head(client):
