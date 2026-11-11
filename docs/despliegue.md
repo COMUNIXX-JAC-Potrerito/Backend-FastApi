@@ -16,14 +16,14 @@ Orden: **Backend (Render) → poner su URL en el frontend → Frontend (Vercel) 
 
 | Pieza | URL |
 |---|---|
-| **Frontend (app)** | <https://frontend-angular-comunixx.vercel.app> ← URL oficial (estable, sin hash) |
+| **Frontend (app)** | <https://comunix.vercel.app> ← URL oficial (estable, sin hash). Proyecto `comunix` del equipo `comunixx` en Vercel |
 | **Backend (API)** | <https://comunix-backend.onrender.com> |
 | **Docs de la API** | <https://comunix-backend.onrender.com/docs> |
 | **Health check** | <https://comunix-backend.onrender.com/health> |
 | **Base de datos** | Neon (PostgreSQL) |
 | **Monitor uptime** | UptimeRobot → HTTP a `/health` cada 5 min |
 
-**Notas de CORS:** el backend acepta cualquier `*.vercel.app` por regex (`cors_origin_regex`), así que las URLs de deploy de Vercel nunca rompen el login. ⚠️ Si algún día se pone un **dominio personalizado** (ej. `comunixpotrerito.com`), hay que **agregarlo al `CORS_ORIGINS`** del backend en Render, porque el regex solo cubre `.vercel.app`.
+**Notas de CORS:** el backend acepta por regex (`cors_origin_regex`) solo los despliegues del frontend del proyecto en Vercel: la URL oficial y las URLs de cada deploy (`https://comunix.vercel.app` y `https://comunix-<hash o git-rama>-comunixx.vercel.app`), no cualquier `*.vercel.app`. Así las URLs de deploy nunca rompen el login. Desde el 11/11/2026 el frontend se publica en el proyecto `comunix` (antes `frontend-angular-comunixx`, cuya URL ya no existe). ⚠️ Si algún día se pone un **dominio personalizado** (ej. `comunixpotrerito.com`) o se renombra el proyecto en Vercel, hay que **agregarlo al `CORS_ORIGINS`** del backend en Render, porque el regex no lo cubre.
 
 **Nota del `/health`:** responde a `GET` **y** `HEAD` (UptimeRobot y varios monitores usan `HEAD`; si solo aceptara `GET` darían 405 y marcarían el server como caído).
 
@@ -40,7 +40,7 @@ El repo `Backend-FastApi` ya tiene un **Dockerfile** y un **`render.yaml`** (Blu
    - `DATABASE_URL` = la cadena de conexión de Neon.
    - `SECRET_KEY` = una clave **propia de producción** (mínimo 32 caracteres, distinta de la del `.env` local). Genérala con `python -c "import secrets; print(secrets.token_urlsafe(48))"`. Si falta o es corta, la app no arranca. Cambiarla cierra todas las sesiones abiertas.
    - `PROXIES_CONFIABLES` = `2` (es el valor por defecto y ya viene en `render.yaml`). Indica cuántos proxies hay delante de la app, para que los límites de frecuencia usen la IP real del cliente y no una que él mismo escriba en `X-Forwarded-For`. En Render son dos: Cloudflare y el balanceador de Render, así que la cabecera llega como `<cliente>, <borde de Cloudflare>`. **No lo bajes a `1`**: la app tomaría la IP de Cloudflare, que comparten muchos usuarios, y un solo abusador bloquearía a todos. Si se agrega otro proxy propio delante (p. ej. un Cloudflare de un dominio personalizado), súbelo en uno.
-   - `CORS_ORIGINS` = tu URL de Vercel (ej. `https://frontend-angular-comunixx.vercel.app`). Si aún no la tienes, pon `http://localhost:4200` y la actualizas después.
+   - `CORS_ORIGINS` = tu URL de Vercel (ej. `https://comunix.vercel.app`). Si aún no la tienes, pon `http://localhost:4200` y la actualizas después.
 4. **Deploy.** Tarda unos minutos (construye el Docker). Te da una URL tipo `https://comunix-backend.onrender.com`.
 5. Verifica:
    - `https://<tu-backend>.onrender.com/health` → `{"status":"ok"}`

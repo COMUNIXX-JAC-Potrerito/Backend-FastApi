@@ -20,9 +20,12 @@ class Settings(BaseSettings):
 
     # Orígenes permitidos por CORS, separados por coma.
     cors_origins: str = "http://localhost:4200"
-    # Patrón de orígenes dinámicos: solo los despliegues del frontend del proyecto
-    # en Vercel (URL oficial y URLs de cada deploy), no cualquier app de Vercel.
-    cors_origin_regex: str | None = r"https://frontend-angular-comunixx(-[a-z0-9-]+)?\.vercel\.app"
+    # Patrón de orígenes dinámicos: solo los despliegues del proyecto "comunix" del
+    # equipo "comunixx" en Vercel, no cualquier app de Vercel:
+    #   https://comunix.vercel.app                     (producción)
+    #   https://comunix-<hash>-comunixx.vercel.app     (cada despliegue)
+    #   https://comunix-git-<rama>-comunixx.vercel.app (vista previa de una rama)
+    cors_origin_regex: str | None = r"https://comunix(-[a-z0-9-]+-comunixx)?\.vercel\.app"
 
     # Proxies delante de la app. En Render son 2: Cloudflare (anota la IP del
     # cliente) y el balanceador de Render (anota la de Cloudflare), así que
