@@ -80,7 +80,10 @@ def subir_archivo(contenido: bytes, nombre: str) -> dict:
             contenido,
             resource_type="auto",
             folder="comunix",
-            use_filename=True,
+            # El nombre original NO debe ir en la URL pública: en una PQRS anónima
+            # revelaría la identidad (p. ej. "Queja de Pedro.pdf"). Cloudinary genera
+            # un identificador aleatorio.
+            use_filename=False,
             unique_filename=True,
         )
     except Exception as error:

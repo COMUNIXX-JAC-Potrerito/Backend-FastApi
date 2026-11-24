@@ -98,10 +98,15 @@ def editar_una_respuesta(
     return gestion.editar_respuesta(db, respuesta_id, data.respuesta, usuario.id)
 
 
-@router.put("/pqrs/{pqrs_id}/asignar", response_model=PQRSResponse, dependencies=[Depends(solo_dignatarios)])
-def asignar(pqrs_id: int, data: AsignarComite, db: Session = Depends(get_db)):
-    """Asigna el comité responsable."""
-    return gestion.asignar_comite(db, pqrs_id, data.comite)
+@router.put("/pqrs/{pqrs_id}/asignar", response_model=PQRSResponse)
+def asignar(
+    pqrs_id: int,
+    data: AsignarComite,
+    db: Session = Depends(get_db),
+    usuario: User = Depends(solo_dignatarios),
+):
+    """Asigna el comité responsable (RN-012: no se reasigna salvo un superadministrador)."""
+    return gestion.asignar_comite(db, pqrs_id, data.comite, usuario.role)
 
 
 @router.put("/pqrs/{pqrs_id}/estado", response_model=PQRSResponse, dependencies=[Depends(solo_dignatarios)])
