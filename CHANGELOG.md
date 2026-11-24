@@ -6,6 +6,8 @@ Todos los cambios relevantes del backend se registran aquí. Formato basado en
 
 ## [Sin publicar]
 
+## [1.4.0] — 2026-11-23
+
 ### Cambiado
 - **RN-012 aplicada en el servidor:** un administrador ya no puede cambiar el comité de
   una PQRS que ya tiene uno (HTTP 409). Solo un superadministrador puede corregir una
@@ -13,6 +15,12 @@ Todos los cambios relevantes del backend se registran aquí. Formato basado en
 
 ### Agregado
 - Licencia MIT (`LICENSE`) y este historial de cambios.
+- Metadatos de OpenAPI en `/docs`: versión, descripción de la API, grupos de endpoints
+  con descripción y orden, contacto y licencia.
+
+### Seguridad
+- **INF-01:** el nombre original del archivo adjunto ya no se incluye en la URL pública
+  de Cloudinary, para no filtrar datos del remitente en una PQRS anónima.
 
 ## [1.3.1] — 2026-11-10
 
