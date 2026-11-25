@@ -69,5 +69,8 @@ def preparar_nueva_publicacion(db: Session, publicacion_id: int) -> Envio | None
     if not correos:
         return None
     asunto, html = cuerpo_publicacion(publicacion)
-    texto = f"Nueva publicación de la JAC: {publicacion.titulo}. Léela en {settings.frontend_url}/publicaciones"
+    texto = (
+        f"Nueva publicación de la JAC: {publicacion.titulo}. "
+        f"Léela en {settings.frontend_url}/publicaciones"
+    )
     return correos, asunto, texto, html
