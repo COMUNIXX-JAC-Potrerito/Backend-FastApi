@@ -1,5 +1,6 @@
 """Aplicación FastAPI: middlewares, manejadores de errores y routers."""
 
+import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -25,6 +26,7 @@ from app.core.errores import registrar_manejadores
 from app.core.limites import LimiteTamanoCuerpo
 from app.core.logs import configurar_logs
 from app.db.migrar import migrar
+from app.services.notificaciones.plazos import iniciar_scheduler_plazos
 
 # Tamaño máximo de cualquier petición: el adjunto (10 MB) más el resto del formulario.
 MAX_BYTES_PETICION = 12 * 1024 * 1024
@@ -70,7 +72,12 @@ ROUTERS = (
 async def ciclo_de_vida(_: FastAPI) -> AsyncIterator[None]:
     # Aplica las migraciones pendientes (crea o modifica tablas). Ver docs/migraciones.md.
     migrar(settings.database_url)
-    yield
+    # Revisa los plazos de las PQRS cada hora (la instancia no se duerme: UptimeRobot).
+    tarea_plazos = asyncio.create_task(iniciar_scheduler_plazos())
+    try:
+        yield
+    finally:
+        tarea_plazos.cancel()
 
 
 configurar_logs()
