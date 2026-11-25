@@ -1,12 +1,14 @@
 """Publicaciones: la comunidad las consulta y los dignatarios las gestionan."""
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, BackgroundTasks, Depends, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import solo_dignatarios
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.publicacion import PublicacionCreate, PublicacionResponse
+from app.services.envios.correo import enviar_correos
+from app.services.notificaciones.comunidad import preparar_nueva_publicacion
 from app.services.publicaciones import gestion
 
 router = APIRouter(tags=["publicaciones"])
@@ -19,8 +21,17 @@ def listar(categoria: str | None = None, db: Session = Depends(get_db)):
 
 
 @router.post("/publicaciones", response_model=PublicacionResponse, status_code=status.HTTP_201_CREATED)
-def crear(data: PublicacionCreate, db: Session = Depends(get_db), usuario: User = Depends(solo_dignatarios)):
-    return gestion.crear_publicacion(db, data, usuario.id)
+def crear(
+    data: PublicacionCreate,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    usuario: User = Depends(solo_dignatarios),
+):
+    publicacion = gestion.crear_publicacion(db, data, usuario.id)
+    envio = preparar_nueva_publicacion(db, publicacion.id)
+    if envio:
+        background_tasks.add_task(enviar_correos, *envio)
+    return publicacion
 
 
 @router.put(

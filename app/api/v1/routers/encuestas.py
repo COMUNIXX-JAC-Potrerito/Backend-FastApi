@@ -1,6 +1,6 @@
 """Encuestas y censos: respuesta pública y gestión por dignatarios."""
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, BackgroundTasks, Depends, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_current_user_optional, solo_dignatarios
@@ -18,6 +18,8 @@ from app.schemas.encuesta import (
 )
 from app.services.auth.roles import es_dignatario
 from app.services.encuestas import gestion, respuestas
+from app.services.envios.correo import enviar_correos
+from app.services.notificaciones.comunidad import preparar_nueva_encuesta
 
 router = APIRouter(tags=["encuestas"])
 
@@ -84,9 +86,19 @@ def crear(data: EncuestaCreate, db: Session = Depends(get_db), usuario: User = D
     response_model=EncuestaResumen,
     dependencies=[Depends(solo_dignatarios)],
 )
-def publicar(encuesta_id: int, data: PublicarEncuesta, db: Session = Depends(get_db)):
-    """Publica o despublica una encuesta."""
-    return gestion.publicar_encuesta(db, encuesta_id, data.publicada)
+def publicar(
+    encuesta_id: int,
+    data: PublicarEncuesta,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    """Publica o despublica una encuesta. Al publicar, avisa a la comunidad."""
+    resultado = gestion.publicar_encuesta(db, encuesta_id, data.publicada)
+    if data.publicada:
+        envio = preparar_nueva_encuesta(db, encuesta_id)
+        if envio:
+            background_tasks.add_task(enviar_correos, *envio)
+    return resultado
 
 
 @router.delete(
