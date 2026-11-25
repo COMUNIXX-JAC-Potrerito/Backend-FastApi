@@ -1,5 +1,23 @@
 """Importa todos los modelos para que queden registrados en Base.metadata."""
 
-from app.models import comunicacion, encuesta, envio_masivo, mensaje, pqrs, publicacion, user
+from app.models import (
+    comunicacion,
+    encuesta,
+    envio_masivo,
+    mensaje,
+    pqrs,
+    publicacion,
+    recuperacion,
+    user,
+)
 
-__all__ = ["comunicacion", "encuesta", "envio_masivo", "mensaje", "pqrs", "publicacion", "user"]
+__all__ = [
+    "comunicacion",
+    "encuesta",
+    "envio_masivo",
+    "mensaje",
+    "pqrs",
+    "publicacion",
+    "recuperacion",
+    "user",
+]
