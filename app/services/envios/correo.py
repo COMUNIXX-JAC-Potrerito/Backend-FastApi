@@ -26,8 +26,24 @@ def _modo(enviados: int, fallidos: int) -> str:
     return "parcial" if enviados else "error"
 
 
-def enviar_correos(destinatarios: list[str], asunto: str, contenido: str) -> ResultadoEnvio:
-    """Envía un correo a cada destinatario.
+def construir_mensaje(
+    remitente: str, destinatario: str, asunto: str, contenido: str, html: str | None = None
+) -> EmailMessage:
+    """Arma un EmailMessage de texto plano, con alternativa HTML si se da."""
+    mensaje = EmailMessage()
+    mensaje["Subject"] = asunto
+    mensaje["From"] = remitente
+    mensaje["To"] = destinatario
+    mensaje.set_content(contenido)
+    if html:
+        mensaje.add_alternative(html, subtype="html")
+    return mensaje
+
+
+def enviar_correos(
+    destinatarios: list[str], asunto: str, contenido: str, html: str | None = None
+) -> ResultadoEnvio:
+    """Envía un correo a cada destinatario (texto plano y, si se da, HTML).
 
     Sin SMTP configurado funciona en modo "simulado" (no envía nada). La conexión
     exige TLS con certificado verificado para no exponer la contraseña SMTP.
@@ -42,11 +58,7 @@ def enviar_correos(destinatarios: list[str], asunto: str, contenido: str) -> Res
             servidor.starttls(context=ssl.create_default_context())
             servidor.login(settings.smtp_user, settings.smtp_password or "")
             for correo in destinatarios:
-                mensaje = EmailMessage()
-                mensaje["Subject"] = asunto
-                mensaje["From"] = remitente
-                mensaje["To"] = correo
-                mensaje.set_content(contenido)
+                mensaje = construir_mensaje(remitente, correo, asunto, contenido, html)
                 try:
                     servidor.send_message(mensaje)
                     enviados += 1
