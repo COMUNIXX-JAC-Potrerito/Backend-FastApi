@@ -42,7 +42,7 @@ DESCRIPCION_API = (
 # Descripción y orden de los grupos de endpoints que se muestran en /docs.
 TAGS_METADATA = [
     {"name": "auth", "description": "Registro, inicio de sesión y emisión de tokens JWT."},
-    {"name": "pqrs", "description": "Radicación (pública o anónima), seguimiento por código y gestión por comisiones."},
+    {"name": "pqrs", "description": "Radicación pública o anónima, seguimiento y gestión por comisiones."},
     {"name": "usuarios", "description": "Administración de dignatarios y roles (solo superadministrador)."},
     {"name": "publicaciones", "description": "Cartelera comunitaria: avisos y noticias públicas."},
     {"name": "encuestas", "description": "Encuestas y censos: creación, respuesta y resultados."},

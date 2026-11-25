@@ -39,9 +39,11 @@ def render_base(
 <!doctype html>
 <html lang="es">
 <body style="margin:0;padding:0;background:#F4F6F4;font-family:Arial,Helvetica,sans-serif;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F4F6F4;padding:24px 0;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+style="background:#F4F6F4;padding:24px 0;">
 <tr><td align="center">
-<table role="presentation" width="560" cellpadding="0" cellspacing="0" style="background:#FFFFFF;border-radius:10px;overflow:hidden;max-width:560px;width:100%;">
+<table role="presentation" width="560" cellpadding="0" cellspacing="0"
+style="background:#FFFFFF;border-radius:10px;overflow:hidden;max-width:560px;width:100%;">
 <tr><td style="background:{VERDE};padding:20px 32px;">
 <span style="color:#FFFFFF;font-size:22px;font-weight:bold;letter-spacing:1px;">COMUNIX</span>
 </td></tr>
