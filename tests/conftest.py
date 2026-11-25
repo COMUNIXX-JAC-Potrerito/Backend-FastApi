@@ -11,8 +11,10 @@ os.environ["DATABASE_URL"] = "sqlite://"
 os.environ["SECRET_KEY"] = "clave-exclusiva-de-pruebas-0123456789abcdef"
 os.environ["CLOUDINARY_URL"] = "cloudinary://123456:secreto-de-pruebas@nube-pruebas"
 os.environ["CORS_ORIGINS"] = "http://localhost:4200"
+# Vaciarlas (no solo quitarlas de os.environ) para que ganen sobre el .env real,
+# que ahora sí trae SMTP: así las pruebas siempre corren en modo "simulado".
 for _variable in ("SMTP_HOST", "SMTP_USER", "SMTP_PASSWORD", "SMTP_FROM"):
-    os.environ.pop(_variable, None)
+    os.environ[_variable] = ""
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
