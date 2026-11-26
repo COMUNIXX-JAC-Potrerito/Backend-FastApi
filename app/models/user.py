@@ -15,6 +15,9 @@ class User(Base):
     role = Column(String, nullable=False, default="usuario")  # ver services/auth/roles.py
     comite = Column(String, nullable=True)  # comisión/cargo del dignatario
     is_active = Column(Boolean, default=True)  # False bloquea el login y los tokens
+    # Momento del último cambio de contraseña: invalida los JWT emitidos antes
+    # (ver app/api/deps.py). NULL en cuentas que nunca la han cambiado.
+    password_changed_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=ahora_utc)
 
     @property

@@ -76,5 +76,7 @@ def restablecer_password(db: Session, token: str, password: str) -> None:
     if usuario is None:
         raise DatosInvalidos(_MENSAJE_INVALIDO)
     usuario.hashed_password = hash_password(password)
+    # Invalida las sesiones (JWT) abiertas antes de este cambio. Ver app/api/deps.py.
+    usuario.password_changed_at = ahora_utc()
     registro.used_at = ahora_utc()
     db.commit()

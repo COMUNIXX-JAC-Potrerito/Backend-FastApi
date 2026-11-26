@@ -3,9 +3,14 @@
 import secrets
 from datetime import timedelta
 
+import jwt
+
+from app.api.deps import _usuario_desde_token
+from app.core.config import settings
 from app.core.tiempo import ahora_utc
 from app.models.recuperacion import PasswordResetToken
-from app.services.auth.recuperacion import hash_token
+from app.services.auth.recuperacion import hash_token, restablecer_password
+from app.services.auth.tokens import ALGORITHM, create_access_token
 
 
 def _crear_token(db, usuario, vencido=False):
@@ -50,3 +55,26 @@ def test_restablecer_rechaza_token_ya_usado(client, db, ciudadano):
     client.post("/api/restablecer", json={"token": raw, "password": "NuevaClave1"})
     r = client.post("/api/restablecer", json={"token": raw, "password": "OtraClave2"})
     assert r.status_code == 400
+
+
+def test_restablecer_invalida_las_sesiones_anteriores(db, ciudadano):
+    # Un JWT emitido ANTES del reset (iat en el pasado) vale ahora...
+    viejo = jwt.encode(
+        {
+            "sub": ciudadano.email,
+            "iat": ahora_utc() - timedelta(minutes=5),
+            "exp": ahora_utc() + timedelta(hours=8),
+        },
+        settings.secret_key,
+        algorithm=ALGORITHM,
+    )
+    assert _usuario_desde_token(viejo, db) is not None
+
+    raw = _crear_token(db, ciudadano)
+    restablecer_password(db, raw, "NuevaClave1")
+
+    # ...pero tras cambiar la contraseña, ese token deja de autenticar.
+    assert _usuario_desde_token(viejo, db) is None
+    # Una sesión nueva (emitida después) sí vale.
+    nuevo = create_access_token({"sub": ciudadano.email})
+    assert _usuario_desde_token(nuevo, db) is not None
