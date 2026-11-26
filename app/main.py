@@ -1,6 +1,7 @@
 """Aplicación FastAPI: middlewares, manejadores de errores y routers."""
 
 import asyncio
+import contextlib
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -35,7 +36,7 @@ DESCRIPCION_API = (
     "API del backend de **COMUNIX**: radicación y seguimiento de PQRS "
     "(públicas o anónimas), gestión por comisiones de la JAC, publicaciones, "
     "encuestas, mensajería interna, comunicaciones y envíos.\n\n"
-    "**Autenticación:** inicia sesión en `/api/auth/login`, copia el token y úsalo "
+    "**Autenticación:** inicia sesión en `/api/login`, copia el token y úsalo "
     "con el botón **Authorize** 🔒 para probar los endpoints privados."
 )
 
@@ -78,6 +79,9 @@ async def ciclo_de_vida(_: FastAPI) -> AsyncIterator[None]:
         yield
     finally:
         tarea_plazos.cancel()
+        # Espera a que la tarea termine de cancelarse (apagado limpio).
+        with contextlib.suppress(asyncio.CancelledError):
+            await tarea_plazos
 
 
 configurar_logs()
