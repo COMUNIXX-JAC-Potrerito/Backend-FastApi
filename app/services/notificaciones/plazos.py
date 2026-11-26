@@ -80,27 +80,36 @@ def _cuerpo(pqrs: PQRS, vencida: bool) -> tuple[str, str]:
 
 
 def revisar_plazos(db: Session) -> None:
-    """Envía los avisos pendientes de plazo y marca cada PQRS para no repetir."""
+    """Envía los avisos pendientes de plazo y marca cada PQRS para no repetir.
+
+    Solo marca (y confirma) una PQRS cuando su aviso quedó atendido: si no hay
+    destinatarios o el envío SMTP falla, no la marca, para reintentar el aviso
+    legal en el próximo ciclo. El commit es por PQRS: un fallo posterior no borra
+    un aviso ya enviado ni marca uno que no se envió.
+    """
     ahora = ahora_utc()
     previas, vencidas = pqrs_por_avisar(db, ahora)
     for pqrs in previas:
-        _enviar(db, pqrs, vencida=False)
-        pqrs.aviso_previo_enviado = True
+        if _enviar(db, pqrs, vencida=False):
+            pqrs.aviso_previo_enviado = True
+            db.commit()
     for pqrs in vencidas:
-        _enviar(db, pqrs, vencida=True)
-        pqrs.aviso_vencido_enviado = True
-    if previas or vencidas:
-        db.commit()
+        if _enviar(db, pqrs, vencida=True):
+            pqrs.aviso_vencido_enviado = True
+            db.commit()
 
 
-def _enviar(db: Session, pqrs: PQRS, vencida: bool) -> None:
+def _enviar(db: Session, pqrs: PQRS, vencida: bool) -> bool:
+    """Envía el aviso. Devuelve True si quedó atendido (había destinatarios y el
+    envío no falló); False si no hay a quién avisar o el SMTP dio error."""
     correos = _destinatarios(db, pqrs)
     if not correos:
-        return
+        return False
     asunto, html = _cuerpo(pqrs, vencida)
     estado = "venció" if vencida else "está por vencer"
     texto = f"La PQRS {pqrs.codigo_seguimiento} ({pqrs.tipo}) {estado} su plazo legal. Atiéndela en el panel."
-    enviar_correos(correos, asunto, texto, html)
+    resultado = enviar_correos(correos, asunto, texto, html)
+    return resultado.modo != "error"
 
 
 def _ciclo() -> None:

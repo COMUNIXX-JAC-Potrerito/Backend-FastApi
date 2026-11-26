@@ -7,6 +7,8 @@ import holidays
 
 from app.core.tiempo import ahora_utc
 from app.models.pqrs import PQRS
+from app.services.envios.correo import ResultadoEnvio
+from app.services.notificaciones import plazos as plazos_svc
 from app.services.notificaciones.plazos import pqrs_por_avisar, revisar_plazos
 from app.services.pqrs.plazos import sumar_dias_habiles
 
@@ -68,3 +70,51 @@ def test_revisar_plazos_marca_y_no_repite(db, crear_usuario):
     previas, vencidas = pqrs_por_avisar(db, ahora_utc())
     assert previas == []
     assert vencidas == []
+
+
+def test_no_marca_si_no_hay_destinatarios(db):
+    # Sin dignatarios en la comisión y sin superadmins: no hay a quién avisar.
+    # El aviso NO debe marcarse como enviado (debe reintentarse en el próximo ciclo).
+    pqrs = _crear_pqrs(db, _retroceder(ahora_utc(), 20))  # vencida
+
+    revisar_plazos(db)
+
+    db.refresh(pqrs)
+    assert pqrs.aviso_vencido_enviado is not True
+
+
+def test_no_marca_si_el_envio_falla(db, crear_usuario, monkeypatch):
+    # Hay destinatarios, pero el envío SMTP falla (modo "error").
+    # El aviso legal NO debe marcarse como enviado: se reintenta luego.
+    crear_usuario(comite="Comisión de Salud", email="dig@x.com")
+    pqrs = _crear_pqrs(db, _retroceder(ahora_utc(), 20))  # vencida
+    monkeypatch.setattr(
+        plazos_svc, "enviar_correos", lambda *a, **k: ResultadoEnvio(0, 1, "error")
+    )
+
+    revisar_plazos(db)
+
+    db.refresh(pqrs)
+    assert pqrs.aviso_vencido_enviado is not True
+
+
+def test_cuerpo_plazo_no_revela_identidad_si_anonima():
+    # El aviso a la comisión no debe filtrar la identidad del ciudadano.
+    pqrs = PQRS(
+        tipo="Queja",
+        asunto="Ruido nocturno",
+        descripcion="...",
+        codigo_seguimiento="cod1234567",
+        estado="En_Proceso",
+        es_anonima=True,
+        nombre_contacto="Juan Secreto",
+        email_contacto="secreto@correo.com",
+        telefono_contacto="3001234567",
+        created_at=ahora_utc(),
+    )
+
+    _asunto, html = plazos_svc._cuerpo(pqrs, vencida=True)
+
+    assert "Juan Secreto" not in html
+    assert "secreto@correo.com" not in html
+    assert "3001234567" not in html
