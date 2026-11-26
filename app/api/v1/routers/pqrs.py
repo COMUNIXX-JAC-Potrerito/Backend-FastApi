@@ -19,6 +19,7 @@ from app.services.envios.correo import enviar_correos
 from app.services.notificaciones.pqrs import (
     preparar_actualizacion_ciudadano,
     preparar_asignacion,
+    preparar_nueva_pqrs,
 )
 from app.services.pqrs import gestion
 from app.services.pqrs.radicacion import completar_contacto, crear_pqrs
@@ -36,13 +37,19 @@ router = APIRouter(tags=["pqrs"])
 )
 def radicar_pqrs(
     data: PQRSCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     usuario: User | None = Depends(get_current_user_optional),
 ):
     """Radica una PQRS. Con sesión se asocia al usuario y completa su contacto."""
     radicado_por_id = usuario.id if usuario else None
     # Quien radica sí ve su propio código y sus datos.
-    return crear_pqrs(db, completar_contacto(data, usuario), radicado_por_id)
+    pqrs = crear_pqrs(db, completar_contacto(data, usuario), radicado_por_id)
+    # Avisa a los superadmins que hay una PQRS entrante por asignar.
+    envio = preparar_nueva_pqrs(db, pqrs.id)
+    if envio:
+        background_tasks.add_task(enviar_correos, *envio)
+    return pqrs
 
 
 @router.get(

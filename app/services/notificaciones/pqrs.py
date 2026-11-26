@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.models.pqrs import PQRS
 from app.models.user import User
+from app.services.auth.roles import ROL_SUPERADMIN
 from app.services.notificaciones.plantillas import render_base
 from app.services.pqrs.catalogos import ESTADO_FINALIZADA
 
@@ -28,6 +29,53 @@ def correos_del_comite(db: Session, comite: str) -> list[str]:
         .all()
     )
     return [email for (email,) in filas]
+
+
+def correos_superadmins(db: Session) -> list[str]:
+    """Correos de los superadministradores activos (triajean las PQRS entrantes)."""
+    filas = (
+        db.query(User.email)
+        .filter(
+            User.role == ROL_SUPERADMIN,
+            User.email.isnot(None),
+            User.is_active.isnot(False),
+        )
+        .all()
+    )
+    return [email for (email,) in filas]
+
+
+def cuerpo_nueva_pqrs(pqrs: PQRS) -> tuple[str, str]:
+    """Asunto y HTML del aviso de PQRS entrante. No revela la identidad del ciudadano."""
+    asunto = f"Nueva PQRS entrante · {pqrs.codigo_seguimiento}"
+    html = render_base(
+        "Llegó una nueva PQRS",
+        [
+            "Hay una PQRS entrante por revisar y asignar a una comisión.",
+            f"Tipo: {pqrs.tipo}",
+            f"Asunto: {pqrs.asunto}",
+            f"Código de seguimiento: {pqrs.codigo_seguimiento}",
+        ],
+        cta_texto="Ir al panel",
+        cta_url=settings.frontend_url,
+    )
+    return asunto, html
+
+
+def preparar_nueva_pqrs(db: Session, pqrs_id: int) -> Envio | None:
+    """Datos del correo a los superadmins por una PQRS entrante, o None si no hay."""
+    pqrs = db.get(PQRS, pqrs_id)
+    if pqrs is None:
+        return None
+    correos = correos_superadmins(db)
+    if not correos:
+        return None
+    asunto, html = cuerpo_nueva_pqrs(pqrs)
+    texto = (
+        f"Nueva PQRS entrante. Tipo: {pqrs.tipo}. Código: {pqrs.codigo_seguimiento}. "
+        "Entra al panel de la JAC para asignarla."
+    )
+    return correos, asunto, texto, html
 
 
 def cuerpo_asignacion(pqrs: PQRS) -> tuple[str, str]:
