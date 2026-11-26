@@ -105,6 +105,7 @@ def reiniciar_limitadores() -> None:
 # Límites por endpoint público (por IP).
 limite_login = limite_por_ip(maximo=20, ventana_segundos=60)
 limite_registro = limite_por_ip(maximo=10, ventana_segundos=3600)
+limite_recuperar = limite_por_ip(maximo=10, ventana_segundos=3600)
 limite_radicar_pqrs = limite_por_ip(maximo=20, ventana_segundos=3600)
 limite_seguimiento = limite_por_ip(maximo=60, ventana_segundos=60)
 limite_responder_encuesta = limite_por_ip(maximo=30, ventana_segundos=3600)

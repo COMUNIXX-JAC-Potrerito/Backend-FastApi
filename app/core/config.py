@@ -42,6 +42,9 @@ class Settings(BaseSettings):
     smtp_password: str | None = None
     smtp_from: str | None = None
 
+    # URL del frontend, para armar los enlaces de los correos (restablecer, seguimiento).
+    frontend_url: str = "https://comunix.vercel.app"
+
     # Cloudinary: cloudinary://<api_key>:<api_secret>@<cloud_name>. Sin él, no hay subidas.
     cloudinary_url: str | None = None
 

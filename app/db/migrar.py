@@ -10,6 +10,7 @@ Uso manual: `uv run python -m app.db.migrar`
 """
 
 import logging
+import tempfile
 from pathlib import Path
 
 from alembic import command
@@ -38,20 +39,38 @@ def config_alembic(url: str) -> Config:
     return config
 
 
-def _faltantes(motor: Engine, tablas: set[str]) -> list[str]:
-    """Tablas y columnas del esquema base que no están en la base.
+def _esquema_base() -> dict[str, set[str]]:
+    """Tablas y columnas del esquema base (REVISION_BASE), construido en memoria.
 
-    Las migraciones posteriores a la base no agregan tablas ni columnas (solo un
-    índice), así que el esquema base es el de los modelos actuales.
+    Las migraciones posteriores agregan tablas y columnas, así que para decidir si
+    una base pre-Alembic está completa solo exigimos el esquema base, no los
+    modelos actuales.
     """
+    with tempfile.TemporaryDirectory() as carpeta:
+        url = f"sqlite:///{Path(carpeta) / 'base.db'}"
+        command.upgrade(config_alembic(url), REVISION_BASE)
+        motor = create_engine(url)
+        try:
+            inspector = inspect(motor)
+            return {
+                nombre: {col["name"] for col in inspector.get_columns(nombre)}
+                for nombre in inspector.get_table_names()
+                if nombre != "alembic_version"
+            }
+        finally:
+            motor.dispose()
+
+
+def _faltantes(motor: Engine, tablas: set[str]) -> list[str]:
+    """Tablas y columnas del esquema base que no están en la base."""
     inspector = inspect(motor)
     faltan = []
-    for nombre, tabla in Base.metadata.tables.items():
+    for nombre, columnas in _esquema_base().items():
         if nombre not in tablas:
             faltan.append(nombre)
             continue
         existentes = {columna["name"] for columna in inspector.get_columns(nombre)}
-        faltan.extend(f"{nombre}.{c.name}" for c in tabla.columns if c.name not in existentes)
+        faltan.extend(f"{nombre}.{c}" for c in columnas if c not in existentes)
     return faltan
 
 

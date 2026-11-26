@@ -1,5 +1,7 @@
 """Dependencias de FastAPI para autenticación y autorización."""
 
+from datetime import UTC
+
 from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
@@ -16,6 +18,22 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/login")
 oauth2_scheme_opcional = OAuth2PasswordBearer(tokenUrl="api/login", auto_error=False)
 
 
+def _token_anterior_al_cambio(payload: dict, usuario: User) -> bool:
+    """True si el token se emitió antes del último cambio de contraseña del usuario.
+
+    Así, al restablecer la contraseña se invalidan las sesiones abiertas antes. Se
+    compara en segundos enteros (como el `iat` del JWT) para no tumbar un token
+    emitido en el mismo segundo del cambio.
+    """
+    cambio = usuario.password_changed_at
+    if cambio is None:
+        return False
+    iat = payload.get("iat")
+    if not isinstance(iat, int | float):
+        return False
+    return iat < int(cambio.replace(tzinfo=UTC).timestamp())
+
+
 def _usuario_desde_token(token: str, db: Session) -> User | None:
     """Usuario dueño del token, solo si el token es válido y la cuenta sigue activa."""
     payload = decode_access_token(token)
@@ -24,6 +42,8 @@ def _usuario_desde_token(token: str, db: Session) -> User | None:
         return None
     usuario = db.query(User).filter(User.email == email).first()
     if usuario is None or not usuario.esta_activo:
+        return None
+    if _token_anterior_al_cambio(payload, usuario):
         return None
     return usuario
 

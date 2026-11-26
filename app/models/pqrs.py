@@ -39,6 +39,10 @@ class PQRS(AdjuntoMixin, Base):
     respuesta = Column(String, nullable=True)
     respuesta_fecha = Column(DateTime, nullable=True)
 
+    # Avisos de plazo ya enviados a la comisión (para no repetirlos).
+    aviso_previo_enviado = Column(Boolean, default=False)
+    aviso_vencido_enviado = Column(Boolean, default=False)
+
     created_at = Column(DateTime, default=ahora_utc)
     updated_at = Column(DateTime, default=ahora_utc, onupdate=ahora_utc)
 
