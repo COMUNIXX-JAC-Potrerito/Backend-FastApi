@@ -1,6 +1,6 @@
 """PQRS: radicación pública, seguimiento por código y gestión por dignatarios."""
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, BackgroundTasks, Depends, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_current_user_optional, solo_dignatarios
@@ -14,6 +14,11 @@ from app.schemas.pqrs import (
     PQRSResponse,
     PQRSSeguimiento,
     ResponderPQRS,
+)
+from app.services.envios.correo import enviar_correos
+from app.services.notificaciones.pqrs import (
+    preparar_actualizacion_ciudadano,
+    preparar_asignacion,
 )
 from app.services.pqrs import gestion
 from app.services.pqrs.radicacion import completar_contacto, crear_pqrs
@@ -80,11 +85,16 @@ def pqrs_asignadas(db: Session = Depends(get_db), usuario: User = Depends(solo_d
 def responder(
     pqrs_id: int,
     data: ResponderPQRS,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     usuario: User = Depends(solo_dignatarios),
 ):
     """Agrega una respuesta al hilo y pasa la PQRS a En_Proceso."""
-    return gestion.agregar_respuesta(db, pqrs_id, data.respuesta, usuario.id)
+    resultado = gestion.agregar_respuesta(db, pqrs_id, data.respuesta, usuario.id)
+    envio = preparar_actualizacion_ciudadano(db, pqrs_id, "respuesta")
+    if envio:
+        background_tasks.add_task(enviar_correos, *envio)
+    return resultado
 
 
 @router.put("/pqrs/respuestas/{respuesta_id}", response_model=PQRSResponse)
@@ -102,14 +112,28 @@ def editar_una_respuesta(
 def asignar(
     pqrs_id: int,
     data: AsignarComite,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     usuario: User = Depends(solo_dignatarios),
 ):
     """Asigna el comité responsable (RN-012: no se reasigna salvo un superadministrador)."""
-    return gestion.asignar_comite(db, pqrs_id, data.comite, usuario.role)
+    resultado = gestion.asignar_comite(db, pqrs_id, data.comite, usuario.role)
+    envio = preparar_asignacion(db, pqrs_id)
+    if envio:
+        background_tasks.add_task(enviar_correos, *envio)
+    return resultado
 
 
 @router.put("/pqrs/{pqrs_id}/estado", response_model=PQRSResponse, dependencies=[Depends(solo_dignatarios)])
-def actualizar_estado(pqrs_id: int, data: CambiarEstado, db: Session = Depends(get_db)):
+def actualizar_estado(
+    pqrs_id: int,
+    data: CambiarEstado,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
     """Cambia el estado (Nueva, En_Proceso, En_Espera o Finalizada)."""
-    return gestion.cambiar_estado(db, pqrs_id, data.estado)
+    resultado = gestion.cambiar_estado(db, pqrs_id, data.estado)
+    envio = preparar_actualizacion_ciudadano(db, pqrs_id, "estado")
+    if envio:
+        background_tasks.add_task(enviar_correos, *envio)
+    return resultado
